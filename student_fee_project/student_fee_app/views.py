@@ -1,5 +1,4 @@
 from django.contrib.auth import authenticate, login, logout, get_user_model, update_session_auth_hash
-from django.contrib.auth.models import Group
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.cache import never_cache
@@ -52,15 +51,6 @@ def verify_totp(secret, code, timestamp=None):
         return False
     return any(hmac.compare_digest(totp_code(secret, timestamp + offset * 30), code) for offset in (-1, 0, 1))
 
-def promote_first_login_to_admin(user):
-    User = get_user_model()
-    with transaction.atomic():
-        if not User.objects.select_for_update().filter(is_superuser=True).exists():
-            User.objects.exclude(pk=user.pk).update(is_staff=False, is_superuser=False)
-            user.is_staff = True
-            user.is_superuser = True
-            user.save(update_fields=['is_staff', 'is_superuser'])
-
 def admin_profile_setup_required(user):
     if not user.is_superuser:
         return False
@@ -79,64 +69,44 @@ def entry_view(request):
 @ensure_csrf_cookie
 @never_cache
 def signup_view(request):
-    add_user_page = request.resolver_match.url_name == 'add_user'
-    if add_user_page and not request.user.is_superuser:
-        return redirect('home' if request.user.is_authenticated else 'login')
-    if request.user.is_authenticated and not request.user.is_superuser and not add_user_page:
+    if request.user.is_authenticated:
         return redirect('home')
     User = get_user_model()
-    if not add_user_page and User.objects.exists():
-        return redirect('home' if request.user.is_authenticated else 'login')
-    first_account = not User.objects.exists()
-    readonly_account = add_user_page or not first_account
-    user_type = 'user' if readonly_account else 'admin'
+    if User.objects.exists():
+        return redirect('login')
     if request.method == 'POST':
-        full_name = request.POST.get('full_name', '').strip()
         username = request.POST.get('username', '').strip()
         password = request.POST.get('password', '')
         confirmation = request.POST.get('confirm_password', '')
         errors = []
-        if add_user_page:
-            user_type = request.POST.get('user_type', 'user')
-            if user_type != 'user':
-                errors.append('New accounts can only be created as User accounts.')
-                user_type = 'user'
-            readonly_account = True
-        if not all((full_name, username, password, confirmation)):
-            errors.append('Complete all fields to create your account.')
+        if not all((username, password, confirmation)):
+            errors.append('Enter a username, password, and password confirmation.')
         if password != confirmation:
             errors.append('The passwords do not match.')
         if User.objects.filter(username__iexact=username).exists():
             errors.append('That username is already in use.')
-        candidate = User(
-            username=username,
-            first_name=full_name,
-            is_staff=first_account and not add_user_page,
-            is_superuser=first_account and not add_user_page,
-        )
+        candidate = User(username=username, is_staff=True, is_superuser=True)
         try:
             validate_password(password, candidate)
         except ValidationError as exc:
             errors.extend(exc.messages)
         if not errors:
             try:
-                candidate.set_password(password)
-                candidate.save()
-                if readonly_account:
-                    readonly_group, _ = Group.objects.get_or_create(name='Read-only users')
-                    candidate.groups.add(readonly_group)
+                with transaction.atomic():
+                    if User.objects.exists():
+                        errors.append('An administrator account has already been created. Please log in.')
+                    else:
+                        candidate.set_password(password)
+                        candidate.save()
             except IntegrityError:
                 errors.append('That username is already in use.')
-            else:
-                messages.success(request, 'The user account was created.' if readonly_account else 'The first account was created as Administrator.')
+            if not errors:
+                messages.success(request, 'The first account was created as Administrator.')
                 return redirect('home' if request.user.is_authenticated else 'login')
         return render(request, 'signup.html', {
-            'errors': errors, 'full_name': full_name, 'username': username,
-            'show_user_type': add_user_page, 'user_type': user_type,
+            'errors': errors, 'username': username,
         })
-    return render(request, 'signup.html', {
-        'show_user_type': add_user_page, 'user_type': user_type,
-    })
+    return render(request, 'signup.html')
 def write_access_required(view_func):
     @wraps(view_func)
     def _wrapped(request, *args, **kwargs):
@@ -157,6 +127,8 @@ def password_reset_view(request):
         totp_code_value = request.POST.get('totp_code', '').strip()
         user = request.user if is_authenticated else get_user_model().objects.filter(username__iexact=username).first()
         errors = []
+        if user and not user.is_superuser:
+            errors.append('Invalid username or password.')
         if not all((username, password, confirmation)):
             errors.append('Complete all fields to reset your password.')
         if user is None:
@@ -164,7 +136,9 @@ def password_reset_view(request):
         if password != confirmation:
             errors.append('The passwords do not match.')
         totp = UserTOTP.objects.filter(user=user, enabled=True).first() if user else None
-        if totp and not verify_totp(totp.secret, totp_code_value):
+        if user and not is_authenticated and not totp:
+            errors.append('Password recovery is unavailable until an administrator authenticator is configured.')
+        elif totp and not verify_totp(totp.secret, totp_code_value):
             errors.append('Enter a valid current authenticator code to reset this password.')
         if user and password:
             try:
@@ -197,11 +171,13 @@ def login_view(request):
         return redirect('home')
     if request.method == 'POST' and pending_user_id:
         user = get_user_model().objects.filter(pk=pending_user_id, is_active=True).first()
+        if not user or not user.is_superuser:
+            request.session.pop('pending_totp_user_id', None)
+            return render(request, 'login.html', {'error_message': 'Invalid username or password.'})
         totp = UserTOTP.objects.filter(user=user, enabled=True).first() if user else None
         code = request.POST.get('totp_code', '').strip()
         if user and totp and verify_totp(totp.secret, code):
             request.session.pop('pending_totp_user_id', None)
-            promote_first_login_to_admin(user)
             needs_setup = admin_profile_setup_required(user)
             login(request, user)
             if needs_setup:
@@ -217,12 +193,13 @@ def login_view(request):
         username = request.POST.get('username', '').strip()
         password = request.POST.get('password', '')
         user = authenticate(request, username=username, password=password)
+        if user is not None and not user.is_superuser:
+            user = None
         if user is not None:
             totp = UserTOTP.objects.filter(user=user, enabled=True).first()
             if totp:
                 request.session['pending_totp_user_id'] = user.pk
                 return render(request, 'login.html', {'requires_totp': True, 'username': user.username})
-            promote_first_login_to_admin(user)
             needs_setup = admin_profile_setup_required(user)
             login(request, user)
             if needs_setup:
@@ -232,8 +209,9 @@ def login_view(request):
         return render(request, 'login.html', {'error_message': 'Invalid username or password.'})
     if pending_user_id:
         user = get_user_model().objects.filter(pk=pending_user_id).first()
-        if user:
+        if user and user.is_superuser:
             return render(request, 'login.html', {'requires_totp': True, 'username': user.username})
+        request.session.pop('pending_totp_user_id', None)
     return render(request, 'login.html')
 
 
@@ -249,21 +227,18 @@ def admin_first_login_setup_view(request):
     if setup.completed:
         request.session.pop('needs_admin_first_login_setup', None)
         return redirect('home')
-    full_name = user.get_full_name()
     username = user.username
     errors = []
 
     if request.method == 'POST':
-        full_name = request.POST.get('full_name', '').strip()
         username = request.POST.get('username', '').strip()
         password = request.POST.get('password', '')
         confirmation = request.POST.get('confirm_password', '')
         User = get_user_model()
-        first_name, _, last_name = full_name.partition(' ')
-        candidate = User(username=username, first_name=first_name, last_name=last_name)
+        candidate = User(username=username)
 
-        if not all((full_name, username, password, confirmation)):
-            errors.append('Complete all fields to finish administrator setup.')
+        if not all((username, password, confirmation)):
+            errors.append('Enter a username, password, and password confirmation to finish administrator setup.')
         if password != confirmation:
             errors.append('The passwords do not match.')
         if username and username.casefold() == user.username.casefold():
@@ -284,10 +259,8 @@ def admin_first_login_setup_view(request):
 
         if not errors:
             user.username = username
-            user.first_name = first_name
-            user.last_name = last_name
             user.set_password(password)
-            user.save(update_fields=['username', 'first_name', 'last_name', 'password'])
+            user.save(update_fields=['username', 'password'])
             setup.completed = True
             setup.save(update_fields=['completed'])
             update_session_auth_hash(request, user)
@@ -296,7 +269,6 @@ def admin_first_login_setup_view(request):
             return redirect('home')
 
     return render(request, 'admin_first_login_setup.html', {
-        'full_name': full_name,
         'username': username,
         'errors': errors,
     })
