@@ -1,0 +1,585 @@
+{% extends "webapp.html" %}
+
+{% block content %}
+<style>
+    .dashboard {
+        --dashboard-ink: #1f3733;
+        --dashboard-muted: #5e756e;
+        --dashboard-line: #cdd8d1;
+        --dashboard-accent: #a87e32;
+        --dashboard-surface: #fbfcf8;
+        --dashboard-paper: #eef2ec;
+        color: var(--dashboard-ink);
+        width: 100%;
+        max-width: 2160px;
+        margin: 0 auto;
+        padding: 42px clamp(24px, 3.2vw, 64px) 56px;
+    }
+
+    .dashboard * { box-sizing: border-box; }
+    .dashboard a, .dashboard button, .dashboard select, .dashboard input { touch-action: manipulation; }
+
+    .dashboard-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 30px;
+    }
+
+    .dashboard-title {
+        margin: 0;
+        color: var(--dashboard-ink);
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(2rem, 3vw, 2.65rem);
+        font-weight: 500;
+        letter-spacing: -.045em;
+        text-wrap: balance;
+    }
+
+    .dashboard-subtitle { margin: 9px 0 0; color: var(--dashboard-muted); font-size: .98rem; }
+
+    .dashboard-primary-action {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        padding: 10px 16px;
+        border: 1px solid #24443d;
+        border-radius: 4px;
+        background: #24443d;
+        color: #fff;
+        font-weight: 650;
+        text-decoration: none;
+        transition: background-color .18s ease;
+    }
+
+    .dashboard-primary-action:hover { background: #172f29; color: #fff; }
+    .dashboard-primary-action:focus-visible,
+    .dashboard-filter select:focus-visible,
+    .dashboard-filter button:focus-visible,
+    .dashboard .btn:focus-visible,
+    .dashboard .form-control:focus-visible,
+    .dashboard .form-select:focus-visible,
+    .dashboard-suggestion:focus-visible {
+        outline: 3px solid #b78b3e;
+        outline-offset: 3px;
+        box-shadow: none;
+    }
+
+    .dashboard-overview {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(320px, .95fr);
+        gap: clamp(28px, 5vw, 72px);
+        align-items: stretch;
+        margin-bottom: 44px;
+    }
+
+    .dashboard-focus {
+        position: relative;
+        display: flex;
+        min-width: 0;
+        min-height: 250px;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: clamp(25px, 4vw, 42px);
+        overflow: hidden;
+        border-left: 5px solid #cda451;
+        background: #24443d;
+        color: #f8f7ef;
+    }
+
+    .dashboard-focus::after {
+        position: absolute;
+        right: -48px;
+        bottom: -92px;
+        width: 240px;
+        height: 240px;
+        border: 1px solid rgb(222 196 135 / 24%);
+        border-radius: 50%;
+        box-shadow: 0 0 0 20px rgb(222 196 135 / 5%), 0 0 0 42px rgb(222 196 135 / 4%);
+        content: "";
+        pointer-events: none;
+    }
+
+    .dashboard-focus-label { margin: 0; color: #d5dfd8; font-size: .92rem; font-weight: 600; }
+    .dashboard-focus-value {
+        position: relative;
+        z-index: 1;
+        margin: 10px 0 8px;
+        color: #fffdf5;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(2.6rem, 5vw, 4.6rem);
+        font-weight: 400;
+        letter-spacing: -.06em;
+        line-height: 1.05;
+        font-variant-numeric: tabular-nums;
+        overflow-wrap: anywhere;
+    }
+    .dashboard-focus-note { position: relative; z-index: 1; margin: 0; color: #c5d2ca; font-size: .88rem; }
+
+    .dashboard-facts { display: flex; flex-direction: column; justify-content: center; margin: 0; }
+    .dashboard-fact {
+        display: flex;
+        min-height: 72px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        border-bottom: 1px solid var(--dashboard-line);
+    }
+    .dashboard-fact:first-child { border-top: 1px solid var(--dashboard-line); }
+    .dashboard-fact dt { color: var(--dashboard-muted); font-size: .94rem; }
+    .dashboard-fact dd { margin: 0; color: var(--dashboard-ink); font-size: 1.2rem; font-weight: 650; font-variant-numeric: tabular-nums; text-align: right; }
+    .dashboard-facts-title { margin: 0 0 10px; color: var(--dashboard-ink); font-family: Georgia, "Times New Roman", serif; font-size: 1.35rem; font-weight: 500; }
+
+    .dashboard-panel {
+        overflow: hidden;
+        border: 1px solid var(--dashboard-line);
+        border-radius: 2px;
+        background: var(--dashboard-surface);
+    }
+
+    .dashboard-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 22px 24px;
+        border-bottom: 1px solid var(--dashboard-line);
+        background: #f7f8f2;
+    }
+
+    .dashboard-panel-title { margin: 0; color: var(--dashboard-ink); font-size: 1.15rem; font-weight: 700; }
+    .dashboard-panel-description { margin: 5px 0 0; color: var(--dashboard-muted); font-size: .9rem; }
+
+    .dashboard-filter { display: flex; align-items: flex-end; gap: 8px; }
+    .dashboard-filter label { display: block; margin-bottom: 5px; color: var(--dashboard-muted); font-size: .78rem; font-weight: 650; }
+    .dashboard-filter select { min-width: 150px; min-height: 40px; padding: 7px 34px 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #fff; color: var(--dashboard-ink); }
+    .dashboard-filter .dashboard-filter-submit {
+        min-height: 40px;
+        padding: 8px 15px;
+        border: 1px solid #24443d;
+        border-radius: 4px;
+        background: #24443d;
+        color: #fff;
+        font-weight: 650;
+    }
+    .dashboard-filter .dashboard-filter-submit:hover,
+    .dashboard-filter .dashboard-filter-submit:active {
+        border-color: #172f29;
+        background: #172f29;
+        color: #fff;
+    }
+
+    .dashboard-table-wrap { overflow-x: auto; overscroll-behavior-x: contain; }
+    .dashboard-table { width: 100%; min-width: 760px; margin: 0; border-collapse: collapse; text-align: left; }
+    .dashboard-table thead { background: #f7f8f2; }
+    .dashboard-table th { padding: 13px 16px; border-bottom: 1px solid var(--dashboard-line); color: #52675f; font-size: .83rem; font-weight: 650; letter-spacing: .01em; white-space: nowrap; }
+    .dashboard-table td { padding: 15px 16px; border-bottom: 1px solid #edf1f6; color: #344158; vertical-align: middle; }
+    .dashboard-table tbody tr:last-child td { border-bottom: 0; }
+    .dashboard-table tbody tr:hover { background: #f5f7f0; }
+    .dashboard-table .student-name { color: var(--dashboard-ink); font-weight: 650; }
+    .dashboard-table .amount-cell { color: #984a31; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .installment-chip { display: inline-flex; padding: 3px 8px; border: 1px solid #e8e6df; border-radius: 4px; background: #f4f3ee; color: #526056; font-family: "JetBrains Mono", monospace; font-size: .7rem; white-space: nowrap; }
+    .dashboard-row-action { min-height: 32px; padding: 6px 11px; border: 0; border-radius: 6px; background: #047857; color: #fff; font-size: .75rem; font-weight: 700; white-space: nowrap; }
+    .dashboard-row-action:hover { background: #065f46; }
+    .dashboard-row-action:focus-visible { outline: 3px solid #34d399; outline-offset: 2px; }
+    .dashboard-empty { padding: 44px 20px !important; color: var(--dashboard-muted) !important; text-align: center; }
+    .dashboard-empty strong { display: block; margin-bottom: 5px; color: var(--dashboard-ink); font-size: 1rem; }
+    .dashboard-empty a { color: #24443d; font-weight: 650; }
+    .fee-status { display: inline-flex; align-items: center; padding: 4px 9px; border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; }
+    .fee-status--overdue { background: #f8e7e2; color: #8d3826; }
+    .fee-status--soon { background: #fbf0d8; color: #76530f; }
+    .fee-status--upcoming { background: #e7efe8; color: #315b42; }
+    .fee-status--unknown { background: #edf0ed; color: #5e756e; }
+    .dashboard-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-top: 1px solid var(--dashboard-line); color: var(--dashboard-muted); font-size: .9rem; }
+    .dashboard-pagination a { padding: 7px 11px; border: 1px solid var(--dashboard-line); border-radius: 4px; color: var(--dashboard-ink); font-weight: 650; text-decoration: none; }
+    .dashboard-pagination a:hover { background: #e8ede4; }
+    .dashboard-pagination a[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+    .dashboard-pagination-link { color: #176348; font-size: .8rem; font-weight: 700; text-decoration: none; white-space: nowrap; }
+    .dashboard-pagination-link:hover { color: #104b37; text-decoration: underline; }
+
+    .dashboard .modal-content { overflow: hidden; border: 0; border-radius: 16px; box-shadow: 0 24px 70px rgb(15 23 42 / 24%); }
+    .dashboard .modal-header, .dashboard .modal-footer { padding: 18px 22px; border-color: var(--dashboard-line); }
+    .dashboard .modal-title { color: var(--dashboard-ink); font-weight: 700; }
+    .dashboard .modal-body { padding: 22px; }
+    .dashboard .form-label { color: #344158; font-weight: 600; }
+    .dashboard-suggestion-list { display: grid; gap: 4px; max-height: 190px; overflow-y: auto; margin-top: 6px; padding: 5px; border: 1px solid var(--dashboard-line); border-radius: 4px; background: #fff; }
+    .dashboard-suggestion { width: 100%; padding: 9px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--dashboard-ink); text-align: left; }
+    .dashboard-suggestion:hover { background: #eef2ff; }
+    .dashboard-status { min-height: 1.25rem; margin: 6px 0 0; color: var(--dashboard-muted); font-size: .85rem; }
+    .dashboard-balance { min-height: 0; margin-top: 9px; padding: 10px 12px; border-left: 3px solid #cda451; background: #f3f5ed; color: #24443d; font-size: .94rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+
+    @media (max-width: 900px) {
+        .dashboard-overview { grid-template-columns: minmax(0, 1fr) minmax(270px, .9fr); gap: 26px; }
+    }
+
+    @media (max-width: 760px) {
+        .dashboard-overview { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    @media (max-width: 640px) {
+        .dashboard { padding: 30px 18px 36px; }
+        .dashboard-header, .dashboard-panel-header { align-items: stretch; flex-direction: column; }
+        .dashboard-primary-action { width: 100%; }
+        .dashboard-overview { grid-template-columns: minmax(0, 1fr); gap: 24px; margin-bottom: 32px; }
+        .dashboard-focus { min-height: 210px; }
+        .dashboard-focus-value { font-size: clamp(2.5rem, 11vw, 3.5rem); }
+        .dashboard-panel-header { padding: 18px; }
+        .dashboard-filter { align-items: flex-end; }
+        .dashboard-filter label { font-size: .74rem; }
+        .dashboard-filter select { min-width: 0; width: 100%; }
+        .dashboard-filter > div { flex: 1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .dashboard-primary-action { transition: none; }
+    }
+
+    /* Stitch dashboard treatment */
+    body:has(.dashboard) { background: #faf9f5 !important; color: #1c2520; }
+    body:has(.dashboard) { font-family: Inter, sans-serif; }
+    body:has(.dashboard) .site-navbar { border: 0; background: #111827; box-shadow: 0 2px 9px rgb(17 24 39 / 18%); }
+    body:has(.dashboard) .site-navbar .container { min-height: 66px; }
+    body:has(.dashboard) .site-brand { color: #fff; }
+    body:has(.dashboard) .site-brand-suite { padding: 3px 8px; border: 1px solid #047857; border-radius: 4px; background: #064e3b; color: #a7f3d0; font-size: .63rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    body:has(.dashboard) .site-brand-mark { border-radius: 8px; background: #047857; color: #fff; }
+    body:has(.dashboard) .site-nav-link { border-radius: 8px; color: #9ca3af; font-size: .84rem; }
+    body:has(.dashboard) .site-nav-link:hover { background: #1f2937; color: #fff; }
+    body:has(.dashboard) .site-nav-link.active { background: #047857; color: #fff; }
+    .dashboard { --dashboard-ink: #1c2520; --dashboard-muted: #526056; --dashboard-line: #e8e6df; --dashboard-surface: #fff; --dashboard-paper: #faf9f5; max-width: 1680px; padding: 30px clamp(20px, 3vw, 48px) 48px; }
+    .dashboard-breadcrumb { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; color: #718078; font-size: .78rem; }
+    .dashboard-breadcrumb strong { color: #176348; font-weight: 700; }
+    .dashboard-header { align-items: flex-end; margin-bottom: 22px; }
+    .dashboard-title { font-family: "Plus Jakarta Sans", Inter, sans-serif; font-size: clamp(1.65rem, 2.4vw, 2.15rem); font-weight: 750; letter-spacing: -.045em; }
+    .dashboard-subtitle { margin-top: 5px; font-size: .9rem; }
+    .dashboard-header-actions { display: flex; align-items: center; gap: 10px; }
+    .dashboard-month { min-height: 40px; padding: 8px 12px; border: 1px solid #dce4dc; border-radius: 6px; background: #fff; color: #344840; }
+    .dashboard-primary-action { min-height: 40px; padding: 9px 14px; border-color: #176348; border-radius: 6px; background: #176348; font-size: .88rem; }
+    .dashboard-primary-action:hover { background: #104b37; }
+    .dashboard-overview { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 22px; }
+    .dashboard-stat { min-width: 0; padding: 20px; border: 1px solid #e8e6df; border-radius: 12px; background: #fff; box-shadow: 0 1px 3px rgb(28 37 32 / 4%); }
+    .dashboard-stat-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .dashboard-stat-label { margin: 0; color: #526056; font-size: .75rem; font-weight: 700; letter-spacing: .045em; text-transform: uppercase; }
+    .dashboard-stat-icon { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid #e8e6df; border-radius: 9px; background: #f4f3ee; color: #047857; }
+    .dashboard-stat-value { margin: 12px 0 6px; color: #1c2520; font-family: "JetBrains Mono", monospace; font-size: clamp(1.25rem, 2vw, 1.6rem); font-weight: 650; letter-spacing: -.04em; line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .dashboard-stat-note { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; color: #526056; font-size: .78rem; }
+    .dashboard-stat-note strong { color: #047857; font-family: "JetBrains Mono", monospace; font-weight: 600; }
+    .dashboard-stat--collected { border-color: #a7f3d0; background: linear-gradient(135deg, #fff 70%, #ecfdf5); }
+    .dashboard-stat--collected .dashboard-stat-label, .dashboard-stat--collected .dashboard-stat-value { color: #047857; }
+    .dashboard-stat--overdue .dashboard-stat-icon { background: #fff0ed; color: #bd4c3d; }
+    .dashboard-stat--overdue .dashboard-stat-value { color: #dc2626; }
+    .dashboard-progress { height: 6px; margin-top: 9px; overflow: hidden; border-radius: 999px; background: #e8e6df; }
+    .dashboard-progress span { display: block; height: 100%; border-radius: inherit; background: #047857; }
+    .dashboard-panel { border: 1px solid #e8e6df; border-radius: 12px; box-shadow: 0 1px 4px rgb(28 37 32 / 4%); }
+    .dashboard-panel + .dashboard-panel { margin-top: 18px; }
+    .dashboard-panel-header { padding: 20px; background: #fff; }
+    .dashboard-panel-title { font-size: 1rem; }
+    .dashboard-panel-description { font-size: .82rem; }
+    .dashboard-filter select { min-height: 36px; border-radius: 6px; }
+    .dashboard-filter .dashboard-filter-submit { min-height: 36px; border-radius: 6px; background: #176348; }
+    .dashboard-table { min-width: 820px; }
+    .dashboard-table thead { background: #f7f6f0; }
+    .dashboard-table th { padding: 11px 14px; color: #748078; font-size: .72rem; letter-spacing: .04em; text-transform: uppercase; }
+    .dashboard-table td { padding: 12px 14px; color: #42554b; font-size: .83rem; }
+    .dashboard-table tbody tr:hover { background: #f8faf7; }
+    .dashboard .modal-content { border-radius: 10px; }
+    @media (max-width: 900px) { .dashboard-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 640px) {
+        .dashboard { padding: 24px 16px 34px; }
+        .dashboard-header-actions { width: 100%; flex-wrap: wrap; }
+        .dashboard-month { flex: 1; }
+        .dashboard-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .dashboard-stat { padding: 14px; }
+        .dashboard-stat-label { font-size: .67rem; }
+        .dashboard-stat-value { font-size: 1.3rem; }
+        .dashboard-panel-header { padding: 16px; }
+    }
+</style>
+
+<main class="dashboard" id="main-content" tabindex="-1">
+    <p class="dashboard-breadcrumb"><span>Accounts &amp; Operations</span><i class="fa-solid fa-chevron-right" aria-hidden="true"></i><strong>Dashboard</strong><span>· {{ selected_month_label|default:"All time" }}</span></p>
+    <header class="dashboard-header">
+        <div>
+            <h1 class="dashboard-title">Fee &amp; Accounts Dashboard</h1>
+            <p class="dashboard-subtitle">Track student fee collection, upcoming installments, and recent receipts.</p>
+        </div>
+        <div class="dashboard-header-actions">
+        
+            <button class="dashboard-primary-action" type="button" data-bs-toggle="modal" data-bs-target="#addPaymentModal"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add Payment</button>
+        </div>
+    </header>
+
+    <section class="dashboard-overview" aria-label="Fee summary">
+        <article class="dashboard-stat"><div class="dashboard-stat-top"><h2 class="dashboard-stat-label">Total Students</h2><span class="dashboard-stat-icon"><i class="fa-solid fa-users" aria-hidden="true"></i></span></div><p class="dashboard-stat-value">{{ total_students|default:0 }}</p><p class="dashboard-stat-note">Active student records</p></article>
+        <article class="dashboard-stat"><div class="dashboard-stat-top"><h2 class="dashboard-stat-label">Total Course Fees</h2><span class="dashboard-stat-icon"><i class="fa-solid fa-book-open" aria-hidden="true"></i></span></div><p class="dashboard-stat-value"><span data-currency="{{ total_fees }}">₹{{ total_fees|floatformat:2 }}</span></p><p class="dashboard-stat-note">Across all enrollments</p></article>
+        <article class="dashboard-stat dashboard-stat--collected"><div class="dashboard-stat-top"><h2 class="dashboard-stat-label">Fees Collected</h2><span class="dashboard-stat-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span></div><p class="dashboard-stat-value"><span data-currency="{{ collected_fees }}">₹{{ collected_fees|floatformat:2 }}</span></p><div class="dashboard-stat-note"><span>{% if selected_month_label %}Collected in {{ selected_month_label }}{% else %}Collected all time{% endif %}</span><strong>{{ collection_rate }}%</strong></div><div class="dashboard-progress" role="progressbar" aria-label="Collection rate" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ collection_rate }}"><span style="width:{{ collection_rate }}%"></span></div></article>
+        <article class="dashboard-stat dashboard-stat--overdue"><div class="dashboard-stat-top"><h2 class="dashboard-stat-label">Pending / Overdue</h2><span class="dashboard-stat-icon"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span></div><p class="dashboard-stat-value"><span data-currency="{{ pending_fees }}">₹{{ pending_fees|floatformat:2 }}</span></p><p class="dashboard-stat-note">{{ overdue_installments }} overdue · ₹{{ overdue_fees|floatformat:2 }} past due</p></article>
+    </section>
+
+    <section class="dashboard-panel" aria-labelledby="pending-fees-title">
+        <div class="dashboard-panel-header">
+            <div>
+                <h2 class="dashboard-panel-title" id="pending-fees-title">Installments Due &amp; Overdue <span class="fee-status fee-status--overdue">{{ overdue_installments }} overdue</span></h2>
+                <p class="dashboard-panel-description">{% if selected_month_label %}Showing installments due in {{ selected_month_label }}.{% else %}Showing all unpaid installments, ordered by due date.{% endif %}</p>
+            </div>
+            <form class="dashboard-filter" method="get">
+                <div>
+                    <label class="visually-hidden" for="installment-month-filter">Filter by month</label>
+                    <select id="installment-month-filter" name="month"><option value="" {% if not selected_month %}selected{% endif %}>All Months</option>{% for value, label in months %}<option value="{{ value }}" {% if selected_month == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+                </div>
+                <button class="btn dashboard-filter-submit" type="submit">Apply</button>
+            </form>
+        </div>
+
+        <div class="dashboard-table-wrap" role="region" aria-label="Pending fee installments" tabindex="0">
+            <table class="dashboard-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Student &amp; Roll Number</th>
+                        <th scope="col">Course</th>
+                        <th scope="col">Installment Cycle</th>
+                        <th scope="col">Due Date</th>
+                        <th scope="col">Remaining Fee</th>
+                        <th scope="col">Payment Status</th>
+                        <th scope="col">Immediate Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in pending_fee_rows %}
+                        <tr>
+                            <td><span class="student-name">{{ row.enrollment__student__name }}</span><br><small class="text-muted">{{ row.enrollment__student__student_reg }}</small></td>
+                            <td>{{ row.enrollment__course__course_name }}</td>
+                            <td><span class="installment-chip">Installment #{{ row.installment_number }}</span></td>
+                            <td>{{ row.due_date|date:"j M Y" }}</td>
+                            <td class="amount-cell"><span data-currency="{{ row.balance }}">₹{{ row.balance|floatformat:2 }}</span></td>
+                            <td><span class="fee-status fee-status--{{ row.due_status_class }}">{{ row.due_status }}</span></td>
+                            <td><button class="dashboard-row-action" type="button" data-bs-toggle="modal" data-bs-target="#addPaymentModal" data-student-name="{{ row.enrollment__student__name|escape }}">Record Pay</button></td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td class="dashboard-empty" colspan="7">
+                                <strong>{% if selected_month_label %}No unpaid installments due in {{ selected_month_label }}{% else %}All fees are up to date{% endif %}</strong>
+                                {% if selected_month_label %}<a href="{% url 'home' %}">View all pending fees</a>{% else %}There are no outstanding installments right now.{% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if page_obj.paginator.num_pages > 1 %}
+            <nav class="dashboard-pagination" aria-label="Pending installment pages">
+                {% if page_obj.has_previous %}
+                    <a href="?{% if selected_month %}month={{ selected_month }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+                {% else %}
+                    <a aria-disabled="true" tabindex="-1">Previous</a>
+                {% endif %}
+                <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} · {{ page_obj.paginator.count }} installments</span>
+                {% if page_obj.has_next %}
+                    <a href="?{% if selected_month %}month={{ selected_month }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+                {% else %}
+                    <a aria-disabled="true" tabindex="-1">Next</a>
+                {% endif %}
+            </nav>
+        {% endif %}
+    </section>
+
+    <section class="dashboard-panel" aria-labelledby="recent-payments-title">
+        <div class="dashboard-panel-header"><div><h2 class="dashboard-panel-title" id="recent-payments-title">Recent Fee Receipts &amp; Transactions</h2><p class="dashboard-panel-description">Latest payment activity across enrollments.</p></div><span class="fee-status fee-status--upcoming"><i class="fa-solid fa-circle-check me-1" aria-hidden="true"></i> Latest receipts</span></div>
+        <div class="dashboard-table-wrap" role="region" aria-label="Recent payments" tabindex="0">
+            <table class="dashboard-table"><thead><tr><th scope="col">Receipt</th><th scope="col">Student Name</th><th scope="col">Enrolled Program</th><th scope="col">Payment Date &amp; Mode</th><th scope="col">Amount Paid</th><th scope="col">Balance Due</th><th scope="col">Details</th></tr></thead>
+                <tbody>{% for payment in latest_payments %}<tr><td><span class="student-name">RCPT-{{ payment.id }}</span></td><td class="student-name">{{ payment.enrollment.student.name }}<br><small class="text-muted">{{ payment.enrollment.student.student_reg }}</small></td><td>{{ payment.enrollment.course.course_name }}</td><td>{{ payment.payment_date|date:"j M Y" }}<br><small class="text-muted">{{ payment.payment_type }}</small></td><td class="amount-cell" style="color:#176348"><span data-currency="{{ payment.payment_amount }}">₹{{ payment.payment_amount|floatformat:2 }}</span></td><td><span data-currency="{{ payment.home_balance }}">₹{{ payment.home_balance|floatformat:2 }}</span></td><td><a class="dashboard-pagination-link" href="{% url 'payment_details' payment.enrollment.student.student_id %}">View <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a></td></tr>{% empty %}<tr><td class="dashboard-empty" colspan="7"><strong>No payments recorded yet</strong>Receipts will appear here after the first fee payment.</td></tr>{% endfor %}</tbody>
+            </table>
+        </div>
+    </section>
+
+    <div class="modal fade" id="addPaymentModal" tabindex="-1" aria-labelledby="addPaymentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="addPaymentModalLabel">Add Payment</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{% url 'addfee' %}" method="post">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="student_name" class="form-label">Student Name</label>
+                            <input type="search" name="student_name" id="student_name" class="form-control"
+                                   placeholder="Search by student name…" autocomplete="off" spellcheck="false"
+                                   aria-controls="studentSuggestions" aria-expanded="false" required>
+                            <div id="studentSuggestions" class="dashboard-suggestion-list" role="group" aria-label="Student suggestions" hidden></div>
+                            <p id="studentSearchStatus" class="dashboard-status" aria-live="polite"></p>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="course_id" class="form-label">Course</label>
+                            <select name="enrollment_id" id="course_id" class="form-select" required>
+                                <option value="">Select a course</option>
+                            </select>
+                            <p id="courseBalance" class="dashboard-status dashboard-balance" aria-live="polite"></p>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="payment_date" class="form-label">Payment Date</label>
+                            <input type="date" name="payment_date" id="payment_date" class="form-control" required>
+                        </div>
+
+                        <div class="mb-0">
+                            <label for="amount" class="form-label">Amount</label>
+                            <input type="number" name="amount" id="amount" class="form-control"
+                                   placeholder="Enter amount…" min="0.01" step="0.01" inputmode="decimal" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Payment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+(() => {
+    const studentInput = document.getElementById("student_name");
+    const suggestions = document.getElementById("studentSuggestions");
+    const status = document.getElementById("studentSearchStatus");
+    const courseDropdown = document.getElementById("course_id");
+    const courseBalance = document.getElementById("courseBalance");
+    const amountInput = document.getElementById("amount");
+    const formatCurrency = (value) => "₹" + new Intl.NumberFormat("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(Number(value) || 0);
+    let latestSearch = 0;
+    let latestCourseRequest = 0;
+
+    document.querySelectorAll("[data-currency]").forEach((element) => {
+        element.textContent = formatCurrency(element.dataset.currency);
+    });
+
+    document.getElementById("addPaymentModal").addEventListener("show.bs.modal", (event) => {
+        const studentName = event.relatedTarget?.dataset.studentName;
+        if (!studentName) return;
+        studentInput.value = studentName;
+        studentInput.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    function updateSelectedBalance() {
+        const selected = courseDropdown.selectedOptions[0];
+        if (!selected || !selected.value) {
+            courseBalance.textContent = "";
+            amountInput.removeAttribute("max");
+            return;
+        }
+        const balance = Number(selected.dataset.balance || 0);
+        const paymentAmount = Number(amountInput.value || 0);
+        courseBalance.textContent = balance > 0
+            ? (paymentAmount > 0 && paymentAmount <= balance
+                ? "Remaining after this payment: " + formatCurrency(balance - paymentAmount)
+                : "Remaining amount: " + formatCurrency(balance))
+            : "This enrollment has no outstanding balance.";
+        if (balance > 0) amountInput.max = balance.toFixed(2);
+        else amountInput.removeAttribute("max");
+    }
+
+    courseDropdown.addEventListener("change", updateSelectedBalance);
+    amountInput.addEventListener("input", updateSelectedBalance);
+
+    function closeSuggestions() {
+        suggestions.hidden = true;
+        suggestions.replaceChildren();
+        studentInput.setAttribute("aria-expanded", "false");
+    }
+
+    async function loadStudentCourses(name) {
+        const requestId = ++latestCourseRequest;
+        courseDropdown.replaceChildren(new Option("Loading courses…", ""));
+        courseDropdown.disabled = true;
+        courseBalance.textContent = "";
+        amountInput.removeAttribute("max");
+        if (name.length < 2) {
+            courseDropdown.replaceChildren(new Option("Select a course", ""));
+            courseDropdown.disabled = false;
+            return;
+        }
+
+        try {
+            const response = await fetch("{% url 'get_student_courses' %}?name=" + encodeURIComponent(name));
+            if (!response.ok) throw new Error("Course request failed");
+            const data = await response.json();
+            if (requestId !== latestCourseRequest) return;
+            courseDropdown.replaceChildren(new Option(data.length ? "Select a course" : "No courses available", ""));
+            data.forEach((item) => {
+                const option = new Option(item.course_name, item.enrollment_id);
+                option.dataset.balance = item.balance;
+                courseDropdown.add(option);
+            });
+        } catch (error) {
+            if (requestId !== latestCourseRequest) return;
+            courseDropdown.replaceChildren(new Option("Could not load courses", ""));
+            status.textContent = "Courses could not be loaded. Try selecting the student again.";
+        } finally {
+            if (requestId === latestCourseRequest) courseDropdown.disabled = false;
+        }
+    }
+
+    studentInput.addEventListener("input", async () => {
+        const query = studentInput.value.trim();
+        const searchId = ++latestSearch;
+        latestCourseRequest++;
+        courseDropdown.disabled = false;
+        courseDropdown.replaceChildren(new Option("Select a course", ""));
+        courseBalance.textContent = "";
+        amountInput.removeAttribute("max");
+        status.textContent = "";
+        closeSuggestions();
+
+        if (query.length < 2) {
+            return;
+        }
+
+        try {
+            const response = await fetch("{% url 'search_students' %}?q=" + encodeURIComponent(query));
+            if (!response.ok) throw new Error("Student search failed");
+            const data = await response.json();
+            if (searchId !== latestSearch) return;
+
+            if (!data.length) {
+                status.textContent = "No students found. Check the spelling and try again.";
+                return;
+            }
+
+            data.forEach((student) => {
+                const option = document.createElement("button");
+                option.type = "button";
+                option.className = "dashboard-suggestion";
+                option.textContent = student.name;
+                option.addEventListener("click", () => {
+                    studentInput.value = student.name;
+                    closeSuggestions();
+                    status.textContent = "Selected " + student.name + ".";
+                    loadStudentCourses(student.name);
+                });
+                suggestions.appendChild(option);
+            });
+            suggestions.hidden = false;
+            studentInput.setAttribute("aria-expanded", "true");
+        } catch (error) {
+            if (searchId === latestSearch) status.textContent = "Student search failed. Check your connection and try again.";
+        }
+    });
+
+    studentInput.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeSuggestions();
+    });
+    document.addEventListener("click", (event) => {
+        if (!suggestions.contains(event.target) && event.target !== studentInput) closeSuggestions();
+    });
+})();
+</script>
+{% endblock %}
+

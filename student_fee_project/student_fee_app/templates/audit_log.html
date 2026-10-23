@@ -1,0 +1,20 @@
+{% extends "webapp.html" %}
+{% block content %}
+<main class="container py-4" id="main-content">
+    <header class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+        <div><p class="text-success fw-semibold mb-1">Administration</p><h1 class="h2 mb-1">Deletion audit log</h1><p class="text-secondary mb-0">A record of deleted accounts, students, courses, and payment transactions.</p></div>
+        <a class="btn btn-outline-success" href="{% url 'home' %}">Back to dashboard</a>
+    </header>
+    <div class="table-responsive border rounded-3 bg-white">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light"><tr><th scope="col">Deleted</th><th scope="col">Record</th><th scope="col">Performed by</th><th scope="col">Reason</th></tr></thead>
+            <tbody>
+                {% for entry in audit_entries %}
+                <tr><td class="text-nowrap">{{ entry.deleted_at|date:"d M Y, H:i" }}</td><td><strong>{{ entry.object_type }}</strong><span class="d-block text-secondary small">{{ entry.object_label }} · ID {{ entry.object_id }}</span></td><td>{{ entry.actor_username }}</td><td>{{ entry.reason|default:"—" }}</td></tr>
+                {% empty %}<tr><td colspan="4" class="text-center text-secondary py-5">No deletions have been recorded.</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if is_paginated %}<nav class="d-flex justify-content-between align-items-center mt-3" aria-label="Audit log pages"><span class="text-secondary small">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span><div class="btn-group">{% if page_obj.has_previous %}<a class="btn btn-outline-secondary btn-sm" href="?page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}{% if page_obj.has_next %}<a class="btn btn-outline-secondary btn-sm" href="?page={{ page_obj.next_page_number }}">Next</a>{% endif %}</div></nav>{% endif %}
+</main>
+{% endblock %}

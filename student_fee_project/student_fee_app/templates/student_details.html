@@ -1,0 +1,344 @@
+{% extends "webapp.html" %}
+{% load humanize %}
+
+{% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">
+<style>
+    body:has(.roster) { background-color: #faf9f5 !important; }
+    .roster {
+        --roster-ink: #1c2520;
+        --roster-muted: #526056;
+        --roster-line: #e8e6df;
+        --roster-pine: #047857;
+        --roster-brass: #059669;
+        width: 100%;
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 34px clamp(22px, 3vw, 48px) 56px;
+        color: var(--roster-ink);
+    }
+    .roster *, .roster *::before, .roster *::after { box-sizing: border-box; }
+    .roster a:focus-visible, .roster button:focus-visible, .roster input:focus-visible, .roster select:focus-visible {
+        outline: 3px solid var(--roster-brass);
+        outline-offset: 3px;
+        box-shadow: none;
+    }
+    .roster-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 28px;
+    }
+    .roster-title {
+        margin: 0;
+        color: var(--roster-ink);
+        font-family: "Source Serif 4", Georgia, serif;
+        font-size: clamp(2rem, 3vw, 2.5rem);
+        font-weight: 600;
+        letter-spacing: -.025em;
+    }
+    .roster-subtitle { margin: 8px 0 0; color: var(--roster-muted); }
+    .roster-add {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        padding: 10px 16px;
+        border: 1px solid var(--roster-pine);
+        border-radius: 7px;
+        background: var(--roster-pine);
+        color: #fff;
+        font-weight: 650;
+        text-decoration: none;
+    }
+    .roster-add:hover { background: #065f46; color: #fff; }
+    .roster-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 16px;
+    }
+    .roster-search { display: flex; width: min(100%, 590px); gap: 8px; }
+    .roster-search-field { position: relative; flex: 1; }
+    .roster-search-field i { position: absolute; top: 50%; left: 14px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; }
+    .roster-search .form-control { min-height: 44px; padding-left: 40px; border-color: var(--roster-line); border-radius: 7px; }
+    .roster-search .btn { min-width: 100px; border-color: var(--roster-pine); border-radius: 7px; background: var(--roster-pine); color: #fff; font-weight: 650; }
+    .roster-search .btn:hover { background: #065f46; }
+    .roster-count { margin: 0; color: var(--roster-muted); font-size: .9rem; white-space: nowrap; }
+    .roster-table-panel { overflow: hidden; border: 1px solid var(--roster-line); border-radius: 9px; background: #fff; box-shadow: 0 2px 8px rgb(17 24 39 / 4%); }
+    .roster-table-wrap { overflow-x: auto; overscroll-behavior-x: contain; }
+    .roster-table { width: 100%; min-width: 1120px; margin: 0; border-collapse: collapse; text-align: left; }
+    .roster-table thead { background: #f9fafb; }
+    .roster-table th {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--roster-line);
+        color: #6b7280;
+        font-size: .78rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .roster-table td { padding: 14px 16px; border-bottom: 1px solid #f3f4f6; color: #374151; vertical-align: middle; }
+    .roster-table tbody tr:last-child td { border-bottom: 0; }
+    .roster-table tbody tr:hover { background: #fcfcfa; }
+    .roster-index { color: #9ca3af !important; font-variant-numeric: tabular-nums; }
+    .roster-identity { min-width: 190px; }
+    .roster-name { display: block; color: var(--roster-ink); font-weight: 700; text-decoration: none; }
+    .roster-name:hover { color: #047857; text-decoration: underline; text-underline-offset: 3px; }
+    .roster-contact { display: block; margin-top: 4px; color: var(--roster-muted); font-size: .82rem; text-decoration: none; }
+    .roster-contact:hover { color: var(--roster-pine); text-decoration: underline; }
+    .roster-reg { color: #4b5563; font-size: .88rem; white-space: nowrap; }
+    .roster-course { min-width: 240px; }
+    .roster-course span, .roster-course small, .roster-standing small { display: block; }
+    .roster-course span { color: var(--roster-ink); font-weight: 600; }
+    .roster-course small, .roster-standing small { margin-top: 5px; color: var(--roster-muted); font-size: .78rem; }
+    .roster-standing { min-width: 135px; }
+    .roster-actions { display: flex; align-items: center; gap: 8px; }
+    .roster-details { color: var(--roster-pine); font-size: .86rem; font-weight: 650; text-decoration: none; white-space: nowrap; }
+    .roster-details:hover { color: #065f46; text-decoration: underline; text-underline-offset: 3px; }
+    .roster-amount { color: var(--roster-ink) !important; font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .roster-balance { color: #92400e !important; }
+    .roster-pill { display: inline-flex; padding: 4px 9px; border-radius: 999px; font-size: .8rem; font-weight: 700; white-space: nowrap; }
+    .roster-pill--closed { background: #ecfdf5; color: #047857; }
+    .roster-pill--paid { background: #eff6ff; color: #1d4ed8; }
+    .roster-pill--pending { background: #fffbeb; color: #b45309; }
+    .roster-edit { border: 1px solid var(--roster-line); border-radius: 6px; background: #fff; color: var(--roster-pine); font-weight: 650; }
+    .roster-edit:hover { border-color: #a7f3d0; background: #ecfdf5; color: var(--roster-pine); }
+    .roster-empty { padding: 52px 20px !important; color: var(--roster-muted) !important; text-align: center; }
+    .roster-empty strong { display: block; margin-bottom: 5px; color: var(--roster-ink); font-family: "Source Serif 4", Georgia, serif; font-size: 1.25rem; font-weight: 600; }
+    .roster .modal-content { overflow: hidden; border: 1px solid var(--roster-line); border-radius: 8px; }
+    .roster .modal-header, .roster .modal-footer { padding: 18px 22px; border-color: var(--roster-line); }
+    .roster .modal-title { color: var(--roster-ink); font-weight: 700; }
+    .roster .modal-body { padding: 22px; }
+    .roster .form-label { color: #344158; font-weight: 600; }
+    .roster-save { border-color: var(--roster-pine); background: var(--roster-pine); color: #fff; }
+    .roster-save:hover { border-color: #065f46; background: #065f46; color: #fff; }
+    @media (max-width: 640px) {
+        .roster { padding: 30px 18px 36px; }
+        .roster-header { align-items: stretch; flex-direction: column; gap: 18px; }
+        .roster-add { width: 100%; }
+        .roster-toolbar { align-items: flex-start; flex-direction: column; }
+        .roster-search { width: 100%; }
+        .roster-search .btn { min-width: 84px; }
+        .roster-table { min-width: 1120px; }
+    }
+    body:has(.roster) { font-family: 'Plus Jakarta Sans', Inter, sans-serif; background: #faf9f5 !important; }
+    .roster { max-width: 1536px; padding-top: 26px; font-family: 'Plus Jakarta Sans', Inter, sans-serif; }
+    .roster-header { align-items: flex-end; padding-bottom: 20px; border-bottom: 1px solid #e5e7eb; }
+    .roster-title { font-size: clamp(1.8rem, 2.6vw, 2.3rem); }
+    .roster-breadcrumb { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; color: #065f46; font-size: .69rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+    .roster-breadcrumb::before { width: 7px; height: 7px; border-radius: 50%; background: #059669; content: ''; }
+    .roster-subtitle { font-size: .88rem; }
+    .roster-add { border-radius: 8px; box-shadow: 0 1px 2px rgb(0 0 0 / 8%); }
+    .roster-stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; margin: 20px 0; }
+    .roster-stat { display: flex; min-width: 0; flex-direction: column; justify-content: space-between; padding: 16px; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 4%); }
+    .roster-stat--overdue { border-color: #fecdd3; background: rgb(255 241 242 / 35%); }
+    .roster-stat-head, .roster-stat-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .roster-stat-label { margin: 0; color: #6b7280; font-size: .69rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .roster-stat-icon { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 8px; background: #ecfdf5; color: #047857; }
+    .roster-stat--overdue .roster-stat-icon { background: #ffe4e6; color: #be123c; }
+    .roster-stat-value { margin: 11px 0 3px; color: #111827; font-size: clamp(1.25rem, 1.9vw, 1.65rem); font-weight: 750; letter-spacing: -.04em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .roster-stat--overdue .roster-stat-value { color: #be123c; }
+    .roster-stat-note { margin: 0; color: #6b7280; font-size: .7rem; }
+    .roster-stat-foot { justify-content: flex-start; margin-top: 10px; padding-top: 8px; border-top: 1px solid #f3f4f6; color: #047857; font-size: .7rem; font-weight: 650; }
+    .roster-stat--overdue .roster-stat-foot { border-color: #ffe4e6; color: #be123c; }
+    .roster-progress { height: 6px; margin-top: 9px; overflow: hidden; border-radius: 99px; background: #f3f4f6; }
+    .roster-progress span { display: block; height: 100%; border-radius: inherit; background: #059669; }
+    .roster-search-panel { margin-bottom: 20px; padding: 10px; border: 1px solid #e5e7eb; border-radius: 11px; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 3%); }
+    .roster-search { width: 100%; gap: 0; }
+    .roster-search .form-control { min-height: 42px; border-radius: 8px; background: #f9fafb; font-size: .85rem; }
+    .roster-search .btn { display: none; }
+    .roster-search-clear { position: absolute; top: 50%; right: 10px; transform: translateY(-50%); padding: 4px 8px; border: 0; background: transparent; color: #9ca3af; }
+    .roster-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(350px, .95fr); align-items: start; gap: 20px; }
+    .roster-table-panel, .roster-inspection { min-width: 0; border: 1px solid #e5e7eb; border-radius: 11px; background: #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 4%); }
+    .roster-table-panel { overflow: hidden; }
+    .roster-table-meta, .roster-table-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 14px; background: #fbfbfa; color: #6b7280; font-size: .7rem; }
+    .roster-table-meta { border-bottom: 1px solid #e5e7eb; }
+    .roster-table-meta strong { color: #111827; }
+    .roster-live { display: inline-flex; align-items: center; gap: 6px; color: #065f46; white-space: nowrap; }
+    .roster-live::before { width: 7px; height: 7px; border-radius: 50%; background: #10b981; content: ''; }
+    .roster-table { min-width: 800px; font-size: .72rem; }
+    .roster-table th { padding: 11px 10px; background: #f9fafb; font-size: .64rem; letter-spacing: .04em; text-transform: uppercase; white-space: normal; }
+    .roster-table td { padding: 12px 10px; font-size: .72rem; }
+    .roster-table tbody tr.roster-selected { background: #ecfdf5; box-shadow: inset 4px 0 #047857; }
+    .roster-table tbody tr:hover { background: #f9fafb; }
+    .roster-table tbody tr.roster-selected:hover { background: #ecfdf5; }
+    .roster-identity { min-width: 155px; }
+    .roster-avatar { display: inline-grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; border-radius: 50%; background: #d1fae5; color: #065f46; font-size: .65rem; font-weight: 800; }
+    .roster-avatar--selected { background: #047857; color: #fff; }
+    .roster-identity-row { display: flex; align-items: center; gap: 8px; }
+    .roster-reg { max-width: 95px; overflow-wrap: anywhere; font-family: 'JetBrains Mono',monospace; font-size: .62rem; }
+    .roster-course { min-width: 150px; }
+    .roster-course small { font-size: .65rem; }
+    .roster-pill { padding: 3px 7px; font-size: .64rem; }
+    .roster-pill--overdue { border: 1px solid #fecdd3; background: #ffe4e6; color: #be123c; }
+    .roster-pill--paid { border: 1px solid #a7f3d0; background: #d1fae5; color: #065f46; }
+    .roster-pill--due { border: 1px solid #fde68a; background: #fef3c7; color: #92400e; }
+    .roster-pill--active { border: 1px solid #a7f3d0; background: #ecfdf5; color: #047857; }
+    .roster-pill--pending { border: 1px solid #e5e7eb; background: #f3f4f6; color: #6b7280; }
+    .roster-amount { font-size: .68rem !important; }
+    .roster-balance { color: #b91c1c !important; }
+    .roster-balance--clear { color: #047857 !important; }
+    .roster-row-detail { color: #6b7280; font-size: .78rem; }
+    .roster-row-detail:hover { color: #047857; }
+    .roster-table-footer { border-top: 1px solid #e5e7eb; flex-wrap: wrap; }
+    .roster-pagination { display: flex; align-items: center; gap: 5px; }
+    .roster-pagination a, .roster-pagination span { min-width: 27px; padding: 5px 8px; border: 1px solid #e5e7eb; border-radius: 5px; background: #fff; color: #374151; text-align: center; text-decoration: none; }
+    .roster-pagination .current { border-color: #047857; background: #047857; color: #fff; }
+    .roster-pagination .disabled { color: #9ca3af; }
+    .roster-rows-select { width: 52px; min-height: 28px; margin: 0 5px; padding: 2px 4px; border: 1px solid #d1d5db; border-radius: 5px; background: #fff; font-size: .7rem; }
+    .roster-inspection { display: grid; gap: 12px; padding: 16px; }
+    .inspection-student { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid #f3f4f6; }
+    .inspection-person { display: flex; min-width: 0; align-items: flex-start; gap: 10px; }
+    .inspection-avatar { display: grid; width: 46px; height: 46px; flex: 0 0 46px; place-items: center; border-radius: 12px; background: #047857; color: white; font-size: .9rem; font-weight: 800; }
+    .inspection-name { margin: 0 0 2px; font-family: 'Plus Jakarta Sans',sans-serif; font-size: .92rem; font-weight: 750; }
+    .inspection-reg { color: #065f46; font-family: 'JetBrains Mono',monospace; font-size: .63rem; }
+    .inspection-course { margin: 3px 0 0; color: #6b7280; font-size: .68rem; }
+    .inspection-year { flex: 0 0 auto; padding: 3px 6px; border: 1px solid #e5e7eb; border-radius: 4px; background: #f9fafb; color: #6b7280; font-size: .62rem; }
+    .inspection-box { padding: 11px; border: 1px solid #e5e7eb; border-radius: 9px; background: #fff; }
+    .inspection-contact { background: rgb(250 249 245 / 75%); }
+    .inspection-label { margin: 0 0 8px; color: #6b7280; font-size: .63rem; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+    .inspection-contact-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 7px; color: #6b7280; font-size: .68rem; }
+    .inspection-contact-row strong, .inspection-contact-row a { color: #1f2937; font-weight: 600; text-decoration: none; text-align: right; }
+    .inspection-contact-row i { width: 16px; color: #047857; }
+    .inspection-breakdown-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+    .inspection-breakdown-head .inspection-label { margin: 0; color: #111827; }
+    .inspection-rate { color: #047857; font-size: .68rem; font-weight: 750; }
+    .inspection-progress { display: flex; height: 8px; overflow: hidden; border-radius: 99px; background: #f3f4f6; }
+    .inspection-progress span { height: 100%; }
+    .inspection-progress-paid { background: #059669; }
+    .inspection-progress-overdue { background: #f43f5e; }
+    .inspection-progress-upcoming { background: #d1d5db; }
+    .inspection-money-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; margin-top: 10px; }
+    .inspection-money { min-width: 0; padding: 8px; border: 1px solid #f3f4f6; border-radius: 6px; background: #f9fafb; }
+    .inspection-money span { display: block; color: #6b7280; font-size: .6rem; }
+    .inspection-money strong { display: block; margin-top: 3px; color: #111827; font-size: .77rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .inspection-money--paid { border-color: #d1fae5; background: #ecfdf5; }
+    .inspection-money--paid strong { color: #047857; }
+    .inspection-money--balance { border-color: #ffe4e6; background: #fff1f2; }
+    .inspection-money--balance strong { color: #be123c; }
+    .inspection-alert { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; padding: 9px; border: 1px solid #fecdd3; border-radius: 8px; background: #fff1f2; color: #9f1239; font-size: .66rem; }
+    .inspection-alert--upcoming { border-color: #fde68a; background: #fffbeb; color: #92400e; }
+    .inspection-alert strong, .inspection-alert small { display: block; }
+    .inspection-alert small { margin-top: 3px; font-size: .62rem; }
+    .inspection-schedule-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #111827; font-size: .68rem; font-weight: 750; text-transform: uppercase; }
+    .inspection-schedule-head small { color: #6b7280; font-size: .62rem; font-weight: 500; text-transform: none; }
+    .inspection-schedule { margin-top: 7px; overflow: hidden; border: 1px solid #e5e7eb; border-radius: 8px; }
+    .inspection-installment { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px; border-bottom: 1px solid #f3f4f6; background: #fff; }
+    .inspection-installment:last-child { border-bottom: 0; }
+    .inspection-installment--overdue { border-left: 3px solid #f43f5e; background: #fff1f2; }
+    .inspection-installment-info { min-width: 0; }
+    .inspection-installment-info strong, .inspection-installment-info small { display: block; }
+    .inspection-installment-info strong { color: #374151; font-size: .65rem; }
+    .inspection-installment-info small { margin-top: 2px; color: #6b7280; font-size: .59rem; }
+    .inspection-installment--overdue strong, .inspection-installment--overdue small { color: #9f1239; }
+    .inspection-state { flex: 0 0 auto; padding: 3px 6px; border-radius: 4px; background: #f3f4f6; color: #6b7280; font-size: .57rem; font-weight: 750; }
+    .inspection-state--paid { border: 1px solid #a7f3d0; background: #d1fae5; color: #065f46; }
+    .inspection-state--overdue { border: 1px solid #fecdd3; background: #ffe4e6; color: #be123c; }
+    .inspection-state--upcoming { background: #f3f4f6; color: #4b5563; }
+    .inspection-actions { display: grid; gap: 7px; }
+    .inspection-record summary { padding: 10px; border-radius: 7px; background: #047857; color: white; cursor: pointer; font-size: .7rem; font-weight: 750; text-align: center; list-style: none; }
+    .inspection-record summary::-webkit-details-marker { display: none; }
+    .inspection-record summary:hover { background: #065f46; }
+    .inspection-record-form { display: grid; gap: 8px; padding: 10px; border: 1px solid #e5e7eb; border-top: 0; border-radius: 0 0 7px 7px; }
+    .inspection-record-form label { display: block; margin-bottom: 4px; color: #6b7280; font-size: .62rem; font-weight: 650; }
+    .inspection-record-form input { width: 100%; min-height: 34px; padding: 5px 8px; border: 1px solid #d1d5db; border-radius: 5px; font-size: .72rem; }
+    .inspection-record-submit { min-height: 34px; border: 0; border-radius: 5px; background: #065f46; color: #fff; font-size: .68rem; font-weight: 700; }
+    .inspection-secondary-actions { display: grid; grid-template-columns: 1fr; gap: 7px; }
+    .inspection-secondary-actions a { padding: 8px 5px; border: 1px solid #d1d5db; border-radius: 6px; color: #374151; font-size: .63rem; font-weight: 650; text-align: center; text-decoration: none; }
+    .inspection-secondary-actions a:hover { background: #f9fafb; }
+    .roster-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 36px; padding: 14px 0; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: .65rem; }
+    @media (max-width: 1050px) { .roster-layout { grid-template-columns: minmax(0,1fr); } .roster-inspection { grid-row: 1; } }
+    @media (max-width: 900px) { .roster-stats { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+    @media (max-width: 640px) { .roster-stats { grid-template-columns: 1fr; } .roster-table-meta, .roster-table-footer { align-items: flex-start; flex-direction: column; } .roster-pagination { max-width: 100%; flex-wrap: wrap; } .roster-header { align-items: stretch; } }
+    </style>
+
+<main class="roster" id="main-content" tabindex="-1">
+    <nav class="roster-breadcrumb" aria-label="Breadcrumb">Academic operations <span aria-hidden="true">•</span> Student records</nav>
+    <header class="roster-header">
+        <div><h1 class="roster-title">Student Directory &amp; Enrollment</h1><p class="roster-subtitle">Search institutional student records, track installment standing, and inspect enrollment fee schedules.</p></div>
+        <a class="roster-add" href="{% url 'addstudent' %}"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Enroll new student</a>
+    </header>
+    <section class="roster-stats" aria-label="Fee operations summary">
+        <article class="roster-stat"><div class="roster-stat-head"><p class="roster-stat-label">Total students</p><span class="roster-stat-icon"><i class="fa-solid fa-users" aria-hidden="true"></i></span></div><div><p class="roster-stat-value">{{ total_students_count|intcomma }}</p><p class="roster-stat-note">{{ enrolled_students_count|intcomma }} with an enrollment record</p></div><div class="roster-stat-foot"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> Student directory</div></article>
+        <article class="roster-stat"><div class="roster-stat-head"><p class="roster-stat-label">Fees settled</p><span class="roster-stat-icon"><i class="fa-regular fa-circle-check" aria-hidden="true"></i></span></div><div><p class="roster-stat-value" data-currency="{{ fees_settled }}">₹{{ fees_settled|floatformat:2 }}</p><p class="roster-stat-note">{{ collection_rate }}% of recorded course fees collected</p><div class="roster-progress"><span style="width:{{ collection_rate }}%"></span></div></div></article>
+        <article class="roster-stat roster-stat--overdue"><div class="roster-stat-head"><p class="roster-stat-label">Overdue balance</p><span class="roster-stat-icon"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span></div><div><p class="roster-stat-value" data-currency="{{ overdue_total }}">₹{{ overdue_total|floatformat:2 }}</p><p class="roster-stat-note">{{ overdue_students }} student{{ overdue_students|pluralize }} with overdue installments</p></div><div class="roster-stat-foot"><i class="fa-solid fa-bell" aria-hidden="true"></i> Follow up on overdue fees</div></article>
+    </section>
+    <section class="roster-search-panel" aria-label="Search student records"><form class="roster-search" role="search" method="get" action="{% url 'student_details' %}"><input type="hidden" name="rows" value="{{ page_obj.paginator.per_page }}"><label class="visually-hidden" for="student-search">Search students</label><div class="roster-search-field"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input class="form-control" type="search" name="q" id="student-search" placeholder="Search by student, registration, phone, course, or division" value="{{ request.GET.q|default:'' }}" autocomplete="off">{% if request.GET.q %}<a class="roster-search-clear" href="{% url 'student_details' %}" aria-label="Clear search"><i class="fa-solid fa-xmark" aria-hidden="true"></i></a>{% endif %}</div><button class="btn" type="submit">Search</button></form></section>
+    <section class="roster-layout" aria-label="Student directory and selected enrollment">
+        <div class="roster-table-panel"><div class="roster-table-meta"><span><strong>{{ students|length }}</strong> records on this page{% if selected_detail %} · 1 student selected for inspection{% endif %}</span><span class="roster-live">Directory data</span></div><div class="roster-table-wrap" role="region" aria-label="Student directory table" tabindex="0">
+            <table class="roster-table"><thead><tr><th scope="col">Student &amp; contact</th><th scope="col">Reg. number</th><th scope="col">Enrolled course &amp; division</th><th scope="col">Fee standing</th><th scope="col">Total fee</th><th scope="col">Balance</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead><tbody>
+            {% for student in students %}<tr{% if selected_detail.student.student_id == student.student_id %} class="roster-selected"{% endif %}><td class="roster-identity"><div class="roster-identity-row"><span class="roster-avatar{% if selected_detail.student.student_id == student.student_id %} roster-avatar--selected{% endif %}" aria-hidden="true">{{ student.initials }}</span><div><a class="roster-name" href="?q={{ request.GET.q|urlencode }}&amp;rows={{ page_obj.paginator.per_page }}&amp;page={{ page_obj.number }}&amp;selected={{ student.student_id }}">{{ student.name }}</a><a class="roster-contact" href="tel:{{ student.phone }}">{{ student.phone }}</a></div></div></td><td class="roster-reg">{{ student.student_reg|default:"—" }}</td><td class="roster-course"><span>{{ student.display_course.course_name|default:"—" }}</span><small>{{ student.display_division|default:"Division not recorded" }}{% if student.joining_date %} · Enrolled {{ student.joining_date|date:"d M Y" }}{% endif %}</small></td><td class="roster-standing"><span class="roster-pill roster-pill--{% if student.display_status == 'Overdue' %}overdue{% elif student.display_status == 'Due soon' %}due{% elif student.display_status == 'On track' %}active{% elif student.display_status == 'Fully paid' %}paid{% else %}pending{% endif %}">{{ student.display_status }}</span><small>{{ student.display_status_detail }}</small></td><td class="roster-amount" data-currency="{{ student.display_total_fee }}">₹{{ student.display_total_fee|floatformat:2 }}</td><td class="roster-amount roster-balance{% if student.display_balance <= 0 %} roster-balance--clear{% endif %}" data-currency="{{ student.display_balance }}">₹{{ student.display_balance|floatformat:2 }}</td><td><div class="roster-actions"><a class="roster-row-detail" href="?q={{ request.GET.q|urlencode }}&amp;rows={{ page_obj.paginator.per_page }}&amp;page={{ page_obj.number }}&amp;selected={{ student.student_id }}" aria-label="Inspect {{ student.name }}" title="Inspect student"><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></a>{% if request.user.is_superuser %}<button class="roster-edit" type="button" data-bs-toggle="modal" data-bs-target="#editStudentModal{{ student.student_id }}" aria-label="Edit {{ student.name }}" title="Edit student"><i class="fa-solid fa-pen" aria-hidden="true"></i></button><form method="post" data-confirm-delete data-confirm-message="Delete {{ student.name|escape }} and all associated enrollments, fees, and payments? This cannot be undone." action="{% url 'delete_student' student.student_id %}">{% csrf_token %}<button class="roster-edit" type="submit" aria-label="Delete {{ student.name }}" title="Delete student"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></form>{% endif %}</div></td></tr>
+            {% empty %}<tr><td class="roster-empty" colspan="7"><strong>{% if request.GET.q %}No students match that search{% else %}No students to show yet{% endif %}</strong>{% if request.GET.q %}Try a name, phone number, course, or division.{% else %}Add a student to start building the directory.{% endif %}</td></tr>{% endfor %}
+            </tbody></table></div>
+            <div class="roster-table-footer"><form method="get" action="{% url 'student_details' %}"><label for="rows-per-page">Rows per page:</label><select class="roster-rows-select" id="rows-per-page" name="rows" onchange="this.form.submit()"><option value="10"{% if page_obj.paginator.per_page == 10 %} selected{% endif %}>10</option><option value="25"{% if page_obj.paginator.per_page == 25 %} selected{% endif %}>25</option><option value="50"{% if page_obj.paginator.per_page == 50 %} selected{% endif %}>50</option><option value="100"{% if rows_per_page == '100' %} selected{% endif %}>100</option><option value="250"{% if rows_per_page == '250' %} selected{% endif %}>250</option><option value="all"{% if rows_per_page == 'all' %} selected{% endif %}>All</option></select><input type="hidden" name="q" value="{{ request.GET.q|default:'' }}"><input type="hidden" name="division" value="{{ request.GET.division|default:'' }}"><span>Showing {{ displayed_start }}–{{ displayed_end }} of {{ page_obj.paginator.count|intcomma }} students</span></form><nav class="roster-pagination" aria-label="Student pages">{% if previous_page_url %}<a href="{{ previous_page_url }}">Previous</a>{% else %}<span class="disabled">Previous</span>{% endif %}<span class="current" aria-current="page">{{ page_obj.number }}</span>{% if next_page_url %}<a href="{{ next_page_url }}">Next</a>{% else %}<span class="disabled">Next</span>{% endif %}</nav></div>
+        </div>
+        {% if selected_detail %}<aside class="roster-inspection" aria-label="Selected student details">
+            <header class="inspection-student"><div class="inspection-person"><span class="inspection-avatar" aria-hidden="true">{{ selected_detail.student.initials }}</span><div><h2 class="inspection-name">{{ selected_detail.student.name }}</h2><span class="inspection-reg">{{ selected_detail.student.student_reg|default:"Registration not recorded" }}</span><p class="inspection-course">{{ selected_detail.student.display_course.course_name|default:"Course not recorded" }}{% if selected_detail.student.display_division %}<br>Division {{ selected_detail.student.display_division }}{% endif %}</p></div></div><span class="inspection-year">Student record</span></header>
+            <section class="inspection-box inspection-contact" aria-labelledby="contact-label"><h3 class="inspection-label" id="contact-label">Contact information</h3><div class="inspection-contact-row"><span><i class="fa-solid fa-phone" aria-hidden="true"></i> Student phone</span><a href="tel:{{ selected_detail.student.phone }}">{{ selected_detail.student.phone|default:"Not recorded" }}</a></div><div class="inspection-contact-row"><span><i class="fa-regular fa-envelope" aria-hidden="true"></i> Student email</span><strong>Not recorded</strong></div><div class="inspection-contact-row"><span><i class="fa-solid fa-people-group" aria-hidden="true"></i> Guardian</span><strong>Not recorded</strong></div></section>
+            <section class="inspection-box" aria-labelledby="breakdown-label"><div class="inspection-breakdown-head"><h3 class="inspection-label" id="breakdown-label">Fee breakdown</h3><span class="inspection-rate">{{ selected_detail.student.display_paid_rate|floatformat:1 }}% paid</span></div><div class="inspection-progress" role="img" aria-label="Fee breakdown: {{ selected_detail.student.display_paid_rate|floatformat:1 }} percent paid, {{ selected_detail.student.display_overdue_rate|floatformat:1 }} percent overdue, {{ selected_detail.student.display_upcoming_rate|floatformat:1 }} percent remaining"><span class="inspection-progress-paid" style="width:{{ selected_detail.student.display_paid_rate }}%"></span><span class="inspection-progress-overdue" style="width:{{ selected_detail.student.display_overdue_rate }}%"></span><span class="inspection-progress-upcoming" style="width:{{ selected_detail.student.display_upcoming_rate }}%"></span></div><div class="inspection-money-grid"><div class="inspection-money"><span>Total course fee</span><strong data-currency="{{ selected_detail.total_fee }}">₹{{ selected_detail.total_fee|floatformat:2 }}</strong></div><div class="inspection-money"><span>Down payment</span><strong data-currency="{{ selected_detail.down_payment }}">₹{{ selected_detail.down_payment|floatformat:2 }}</strong></div><div class="inspection-money inspection-money--paid"><span>Recorded payments</span><strong data-currency="{{ selected_detail.total_paid }}">₹{{ selected_detail.total_paid|floatformat:2 }}</strong></div><div class="inspection-money inspection-money--balance"><span>Outstanding balance</span><strong data-currency="{{ selected_detail.balance }}">₹{{ selected_detail.balance|floatformat:2 }}</strong></div></div>
+                {% if selected_detail.overdue_rows %}{% with fee=selected_detail.overdue_rows.0 %}<div class="inspection-alert"><i class="fa-regular fa-circle-exclamation" aria-hidden="true"></i><div><strong>Installment {{ fee.installment_number }} is {{ fee.days_overdue }} day{{ fee.days_overdue|pluralize }} overdue</strong><small>Due {{ fee.due_date|date:"d M Y" }} · Outstanding <span data-currency="{{ fee.balance }}">₹{{ fee.balance|floatformat:2 }}</span></small></div></div>{% endwith %}{% elif selected_detail.upcoming_rows %}{% with fee=selected_detail.upcoming_rows.0 %}<div class="inspection-alert inspection-alert--upcoming"><i class="fa-regular fa-clock" aria-hidden="true"></i><div><strong>Next installment due {{ fee.due_date|date:"d M Y" }}</strong><small>Outstanding <span data-currency="{{ fee.balance }}">₹{{ fee.balance|floatformat:2 }}</span></small></div></div>{% endwith %}{% endif %}
+            </section>
+            <section aria-labelledby="schedule-label"><div class="inspection-schedule-head"><span id="schedule-label">Installment schedule</span><small>{{ selected_detail.installment_count }} planned</small></div><div class="inspection-schedule">{% for fee in selected_detail.fees %}<div class="inspection-installment{% if fee.is_overdue %} inspection-installment--overdue{% endif %}"><div class="inspection-installment-info"><strong>Installment {{ fee.installment_number }} · <span data-currency="{{ fee.amount }}">₹{{ fee.amount|floatformat:2 }}</span></strong><small>{% if fee.is_paid %}Paid {{ fee.payment_date|date:"d M Y"|default:"date not recorded" }}{% elif fee.is_overdue %}Due {{ fee.due_date|date:"d M Y" }} · {{ fee.days_overdue }} days overdue{% else %}Upcoming{% endif %}</small></div><span class="inspection-state inspection-state--{% if fee.is_paid %}paid{% elif fee.is_overdue %}overdue{% else %}upcoming{% endif %}">{% if fee.is_paid %}Paid{% elif fee.is_overdue %}Overdue{% else %}Due {{ fee.due_date|date:"d M Y"|default:"Date not set" }}{% endif %}</span></div>{% empty %}<div class="inspection-installment"><div class="inspection-installment-info"><strong>No installment schedule recorded</strong><small>This enrollment has no fee schedule yet.</small></div></div>{% endfor %}</div></section>
+            <div class="inspection-actions">{% if selected_detail.enrollment and selected_detail.balance > 0 %}<details class="inspection-record"><summary><i class="fa-solid fa-money-bill-wave" aria-hidden="true"></i> Record payment · balance <span data-currency="{{ selected_detail.balance }}">₹{{ selected_detail.balance|floatformat:2 }}</span></summary><form class="inspection-record-form" method="post" action="{% url 'addfee' %}">{% csrf_token %}<input type="hidden" name="enrollment_id" value="{{ selected_detail.enrollment.id }}"><label for="payment-amount">Amount</label><input id="payment-amount" type="number" name="amount" min="0.01" max="{{ selected_detail.balance }}" step="0.01" placeholder="Enter amount" required><label for="payment-date">Payment date</label><input id="payment-date" type="date" name="payment_date" required><button class="inspection-record-submit" type="submit">Save payment</button></form></details>{% endif %}<div class="inspection-secondary-actions"><a href="{% url 'payment_details' selected_detail.student.student_id %}"><i class="fa-regular fa-eye" aria-hidden="true"></i> Payment details</a></div></div>
+        </aside>{% endif %}
+    </section>
+    <footer class="roster-footer"><span><strong>Student Fee Manager</strong> · Academic fee operations and enrollment records</span><span>Payment and contact details shown from recorded data</span></footer>
+
+    {% for student in students %}
+        <div class="modal fade" id="editStudentModal{{ student.student_id }}" tabindex="-1"
+             aria-labelledby="editStudentModalLabel{{ student.student_id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title fs-5" id="editStudentModalLabel{{ student.student_id }}">Edit student</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form method="post" action="{% url 'editstudent' student.student_id %}">
+                        {% csrf_token %}
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label" for="student-reg-{{ student.student_id }}">Registration ID</label>
+                                <input class="form-control" id="student-reg-{{ student.student_id }}" type="text" name="student_reg" value="{{ student.student_reg }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="student-name-{{ student.student_id }}">Student name</label>
+                                <input class="form-control" id="student-name-{{ student.student_id }}" type="text" name="name" value="{{ student.name }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="student-phone-{{ student.student_id }}">Phone</label>
+                                <input class="form-control" id="student-phone-{{ student.student_id }}" type="tel" name="phone" value="{{ student.phone }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="student-division-{{ student.student_id }}">Division</label>
+                                <input class="form-control" id="student-division-{{ student.student_id }}" type="text" name="division" value="{{ student.division }}">
+                            </div>
+                            <div>
+                                <label class="form-label" for="student-course-{{ student.student_id }}">Course</label>
+                                <input class="form-control" id="student-course-{{ student.student_id }}" type="text" value="{{ student.course_id.course_name|default:'—' }}" readonly>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn roster-save">Save changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</main>
+<script>
+    document.querySelectorAll("[data-currency]").forEach((element) => {
+        element.textContent = "₹" + new Intl.NumberFormat("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(Number(element.dataset.currency) || 0);
+    });
+</script>
+{% endblock %}
+

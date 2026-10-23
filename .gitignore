@@ -1,0 +1,10 @@
+﻿student_fee_venv/
+__pycache__/
+*.py[cod]
+.env
+*.db
+*.sqlite3
+*.log
+.vscode/
+.idea/
+.pytest_cache/

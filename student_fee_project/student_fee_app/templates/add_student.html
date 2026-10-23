@@ -1,0 +1,258 @@
+{% extends "webapp.html" %}
+
+{% block content %}
+<style>
+    .enrollment-page {
+        --enroll-ink: #1f3733;
+        --enroll-muted: #5e756e;
+        --enroll-line: #cdd8d1;
+        --enroll-pine: #24443d;
+        --enroll-brass: #cda451;
+        width: 100%;
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 42px clamp(22px, 4vw, 64px) 60px;
+        color: var(--enroll-ink);
+    }
+    .enrollment-page *, .enrollment-page *::before, .enrollment-page *::after { box-sizing: border-box; }
+    .enrollment-page :is(a, button, input, select):focus-visible {
+        outline: 3px solid var(--enroll-brass);
+        outline-offset: 3px;
+        box-shadow: none;
+    }
+    .enrollment-heading { margin-bottom: 26px; }
+    .enrollment-back { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 15px; color: var(--enroll-muted); font-size: .9rem; text-decoration: none; }
+    .enrollment-back:hover { color: var(--enroll-pine); text-decoration: underline; text-underline-offset: 3px; }
+    .enrollment-title { margin: 0; color: var(--enroll-ink); font-family: Georgia, "Times New Roman", serif; font-size: clamp(2rem, 3.4vw, 2.8rem); font-weight: 500; letter-spacing: -.045em; }
+    .enrollment-subtitle { margin: 8px 0 0; color: var(--enroll-muted); }
+    .enrollment-form {
+        display: grid;
+        grid-template-columns: minmax(0, 1.55fr) minmax(260px, .75fr);
+        align-items: start;
+        border: 1px solid var(--enroll-line);
+        border-top: 3px solid var(--enroll-brass);
+        background: #fbfcf8;
+    }
+    .enrollment-fields { min-width: 0; padding: clamp(22px, 3vw, 36px); }
+    .enrollment-section + .enrollment-section { margin-top: 30px; padding-top: 26px; border-top: 1px solid var(--enroll-line); }
+    .enrollment-section h2 { margin: 0 0 17px; color: var(--enroll-ink); font-size: 1.04rem; font-weight: 700; }
+    .enrollment-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 17px 20px; }
+    .enrollment-field { min-width: 0; }
+    .enrollment-field--wide { grid-column: 1 / -1; }
+    .enrollment-field label { display: block; margin-bottom: 6px; color: #344b44; font-size: .88rem; font-weight: 650; }
+    .enrollment-field .form-control, .enrollment-field .form-select { min-height: 44px; border-color: #cbd5ce; border-radius: 4px; background-color: #fff; color: var(--enroll-ink); }
+    .enrollment-field .form-control[readonly] { background: #f1f4ee; color: #52675f; }
+    .enrollment-help { display: block; min-height: 1.2rem; margin-top: 6px; color: var(--enroll-muted); font-size: .8rem; }
+    .enrollment-help--error { color: #8d3826; }
+    .enrollment-aside { position: sticky; top: 92px; align-self: stretch; padding: 28px; background: var(--enroll-pine); color: #f8f7ef; }
+    .enrollment-aside h2 { margin: 0; color: #fffdf5; font-family: Georgia, "Times New Roman", serif; font-size: 1.4rem; font-weight: 500; }
+    .enrollment-aside-intro { min-height: 2.7rem; margin: 8px 0 22px; color: #c5d2ca; font-size: .9rem; line-height: 1.5; }
+    .fee-summary { margin: 0; }
+    .fee-summary-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid rgb(255 255 255 / 18%); }
+    .fee-summary-row dt { color: #c5d2ca; font-size: .88rem; font-weight: 500; }
+    .fee-summary-row dd { margin: 0; color: #fffdf5; font-size: .98rem; font-weight: 650; font-variant-numeric: tabular-nums; text-align: right; }
+    .fee-summary-row--remaining { margin-top: 6px; padding-top: 17px; border-top: 1px solid rgb(205 164 81 / 65%); }
+    .fee-summary-row--remaining dt, .fee-summary-row--remaining dd { color: #f2d794; }
+    .enrollment-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 27px; }
+    .enrollment-cancel, .enrollment-submit { min-height: 44px; padding: 10px 16px; border-radius: 4px; font-weight: 650; text-decoration: none; }
+    .enrollment-cancel { display: inline-flex; align-items: center; border: 1px solid var(--enroll-line); color: var(--enroll-ink); }
+    .enrollment-cancel:hover { background: #eef2ec; color: var(--enroll-ink); }
+    .enrollment-submit { border: 1px solid var(--enroll-pine); background: var(--enroll-pine); color: #fff; }
+    .enrollment-submit:hover { border-color: #172f29; background: #172f29; }
+    @media (max-width: 820px) {
+        .enrollment-form { grid-template-columns: minmax(0, 1fr); }
+        .enrollment-aside { position: static; }
+    }
+    @media (max-width: 560px) {
+        .enrollment-page { padding: 28px 16px 40px; }
+        .enrollment-fields, .enrollment-aside { padding: 22px 18px; }
+        .enrollment-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+        .enrollment-field--wide { grid-column: auto; }
+        .enrollment-actions > * { flex: 1; justify-content: center; text-align: center; }
+    }
+</style>
+
+<main class="enrollment-page" id="main-content" tabindex="-1">
+    <header class="enrollment-heading">
+        <a class="enrollment-back" href="{% url 'student_details' %}">
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+            Student directory
+        </a>
+        <h1 class="enrollment-title">Add a student</h1>
+        <p class="enrollment-subtitle">Create a student record and set up their course payment plan.</p>
+    </header>
+
+    <form action="{% url 'addstudent' %}" method="post" class="enrollment-form" id="enrollmentForm">
+        {% csrf_token %}
+        <div class="enrollment-fields">
+            <section class="enrollment-section" aria-labelledby="student-details-heading">
+                <h2 id="student-details-heading">Student details</h2>
+                <div class="enrollment-grid">
+                    <div class="enrollment-field">
+                        <label for="student_reg">Registration ID</label>
+                        <input class="form-control" type="text" name="student_reg" id="student_reg" maxlength="20" autocomplete="off" required>
+                    </div>
+                    <div class="enrollment-field">
+                        <label for="name">Full name</label>
+                        <input class="form-control" type="text" name="name" id="name" maxlength="100" autocomplete="name" required>
+                    </div>
+                    <div class="enrollment-field enrollment-field--wide">
+                        <label for="phone">Phone number</label>
+                        <input class="form-control" type="tel" name="phone" id="phone" inputmode="numeric" maxlength="10" minlength="10" pattern="[0-9]{10}" title="Enter a 10-digit phone number" placeholder="10-digit number" autocomplete="tel" required>
+                    </div>
+                </div>
+            </section>
+
+            <section class="enrollment-section" aria-labelledby="course-details-heading">
+                <h2 id="course-details-heading">Course and payment</h2>
+                <div class="enrollment-grid">
+                    <div class="enrollment-field enrollment-field--wide">
+                        <label for="course_name">Course</label>
+                        <input class="form-control" type="text" name="course_name" id="course_name" list="courseList" placeholder="Choose a course" autocomplete="off" aria-describedby="courseHelp" required>
+                        <input type="hidden" name="course_id" id="course_id">
+                        <datalist id="courseList">
+                            {% for course in courses %}
+                                <option value="{{ course.course_name }}" data-id="{{ course.course_id }}" data-fee="{{ course.final_fee }}" data-duration="{{ course.duration }}" data-division="{{ course.division }}"></option>
+                            {% endfor %}
+                        </datalist>
+                        <span class="enrollment-help" id="courseHelp" aria-live="polite">Choose a course from the list to load its fee and schedule.</span>
+                    </div>
+                    <div class="enrollment-field">
+                        <label for="division">Division</label>
+                        <select class="form-select" name="division" id="division" required>
+                            <option value="">Select division</option>
+                            <option value="A">Accounting</option>
+                            <option value="B">Software</option>
+                            <option value="C">Multimedia</option>
+                            <option value="D">CAD</option>
+                        </select>
+                    </div>
+                    <div class="enrollment-field">
+                        <label for="installment">Installments</label>
+                        <input class="form-control" type="number" name="installment" id="installment" readonly aria-describedby="installmentHelp">
+                        <input type="hidden" name="duration" id="duration">
+                        <span class="enrollment-help" id="installmentHelp">Set by the course duration.</span>
+                    </div>
+                    <div class="enrollment-field">
+                        <label for="course_fee">Course fee</label>
+                        <input class="form-control" type="number" name="course_fee" id="course_fee" min="0" step="0.01" readonly>
+                    </div>
+                    <div class="enrollment-field">
+                        <label for="down_payment">Payment today</label>
+                        <input class="form-control" type="number" name="down_payment" id="down_payment" min="0" step="0.01" inputmode="decimal" placeholder="0.00" required>
+                    </div>
+                    <div class="enrollment-field">
+                        <label for="payment_date">Payment date</label>
+                        <input class="form-control" type="date" name="payment_date" id="payment_date" value="{% now 'Y-m-d' %}" required>
+                    </div>
+                    <input type="hidden" name="remaining_amount" id="remaining_amount">
+                    <input type="hidden" name="monthly_installment" id="monthly_installment">
+                </div>
+            </section>
+
+            <div class="enrollment-actions">
+                <a class="enrollment-cancel" href="{% url 'student_details' %}">Cancel</a>
+                <button class="enrollment-submit" type="submit">Save student</button>
+            </div>
+        </div>
+
+        <aside class="enrollment-aside" aria-labelledby="fee-summary-heading">
+            <h2 id="fee-summary-heading">Fee summary</h2>
+            <p class="enrollment-aside-intro" id="summaryCourse">Choose a course to preview the payment plan.</p>
+            <dl class="fee-summary" aria-live="polite">
+                <div class="fee-summary-row">
+                    <dt>Course fee</dt>
+                    <dd id="summaryFee">₹0.00</dd>
+                </div>
+                <div class="fee-summary-row">
+                    <dt>Payment today</dt>
+                    <dd id="summaryPayment">₹0.00</dd>
+                </div>
+                <div class="fee-summary-row fee-summary-row--remaining">
+                    <dt>Remaining balance</dt>
+                    <dd id="summaryRemaining">₹0.00</dd>
+                </div>
+                <div class="fee-summary-row">
+                    <dt>Monthly estimate</dt>
+                    <dd id="summaryMonthly">—</dd>
+                </div>
+            </dl>
+        </aside>
+    </form>
+</main>
+
+<script>
+(() => {
+    const courseInput = document.getElementById("course_name");
+    const courseId = document.getElementById("course_id");
+    const courseFee = document.getElementById("course_fee");
+    const duration = document.getElementById("duration");
+    const installment = document.getElementById("installment");
+    const division = document.getElementById("division");
+    const downPayment = document.getElementById("down_payment");
+    const courseHelp = document.getElementById("courseHelp");
+    const options = Array.from(document.querySelectorAll("#courseList option"));
+    const formatMoney = (value) => "₹" + new Intl.NumberFormat("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(Number(value) || 0);
+
+    function updateSummary() {
+        const fee = Number(courseFee.value) || 0;
+        const paid = Number(downPayment.value) || 0;
+        const count = Number(installment.value) || 0;
+        const remaining = Math.max(fee - paid, 0);
+        const monthly = count > 0 ? remaining / count : 0;
+
+        document.getElementById("remaining_amount").value = remaining.toFixed(2);
+        document.getElementById("monthly_installment").value = count > 0 ? monthly.toFixed(2) : "";
+        document.getElementById("summaryFee").textContent = formatMoney(fee);
+        document.getElementById("summaryPayment").textContent = formatMoney(paid);
+        document.getElementById("summaryRemaining").textContent = formatMoney(remaining);
+        document.getElementById("summaryMonthly").textContent = count > 0 ? formatMoney(monthly) : "—";
+        downPayment.max = fee > 0 ? fee.toFixed(2) : "";
+    }
+
+    function syncCourse() {
+        const typedName = courseInput.value.trim().toLocaleLowerCase();
+        const selected = options.find((option) => option.value.trim().toLocaleLowerCase() === typedName);
+
+        if (!selected) {
+            courseId.value = "";
+            courseFee.value = "";
+            duration.value = "";
+            installment.value = "";
+            division.value = "";
+            document.getElementById("summaryCourse").textContent = "Choose a course to preview the payment plan.";
+            courseHelp.textContent = typedName ? "Choose a course from the suggestions so its details can be loaded." : "Choose a course from the list to load its fee and schedule.";
+            courseHelp.classList.toggle("enrollment-help--error", Boolean(typedName));
+            updateSummary();
+            return;
+        }
+
+        courseId.value = selected.dataset.id;
+        courseFee.value = selected.dataset.fee || "";
+        duration.value = selected.dataset.duration || "";
+        installment.value = selected.dataset.duration || "";
+        division.value = selected.dataset.division || "";
+        document.getElementById("summaryCourse").textContent = selected.value + " · " + (installment.value || "0") + " monthly installments";
+        courseHelp.textContent = "Course fee and schedule loaded.";
+        courseHelp.classList.remove("enrollment-help--error");
+        updateSummary();
+    }
+
+    courseInput.addEventListener("input", syncCourse);
+    downPayment.addEventListener("input", updateSummary);
+    document.getElementById("enrollmentForm").addEventListener("submit", (event) => {
+        if (!courseId.value) {
+            event.preventDefault();
+            courseInput.setCustomValidity("Choose a course from the suggestions.");
+            courseInput.reportValidity();
+        }
+    });
+    courseInput.addEventListener("input", () => courseInput.setCustomValidity(""));
+    updateSummary();
+})();
+</script>
+{% endblock %}
+

@@ -1,0 +1,312 @@
+{% load user_roles %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Fee Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css" integrity="sha512-QeR2VH+lsBE5LSAe1Q5EnTBbe7XTBubt8dG93Y7gidSgdMCr8nVqKcfKAMyN96SV8KDbZVTDXChatu5G2KQGzg==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
+ 
+    <style>
+        .site-navbar {
+            position: sticky;
+            top: 0;
+            z-index: 2000;
+            border: 0;
+            background: #111827;
+            box-shadow: 0 2px 9px rgb(17 24 39 / 18%);
+            backdrop-filter: blur(12px);
+        }
+        .site-navbar .container {
+            display: flex;
+            width: 100%;
+            max-width: 2160px;
+            min-height: 66px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            padding-right: clamp(24px, 3.2vw, 64px);
+            padding-left: clamp(24px, 3.2vw, 64px);
+            box-sizing: border-box;
+        }
+        .site-brand {
+            display: inline-flex;
+            flex: 0 0 auto;
+            align-items: center;
+            gap: 10px;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 750;
+            text-decoration: none;
+        }
+        .site-brand-name { font-family: "Plus Jakarta Sans", Inter, sans-serif; font-size: 1.04rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+        .site-brand-mark {
+            display: grid;
+            width: 36px;
+            height: 36px;
+            place-items: center;
+            border-radius: 8px;
+            background: #047857;
+            color: #fff;
+        }
+        .site-nav-links { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; margin-left: auto; }
+        .site-brand-suite { padding: 3px 8px; border: 1px solid #047857; border-radius: 4px; background: #064e3b; color: #a7f3d0; font-size: .63rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+        .site-nav-link {
+            display: inline-flex;
+            min-height: 40px;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 8px;
+            color: #9ca3af;
+            font-size: .84rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background-color .16s ease, color .16s ease;
+        }
+        .site-nav-link:hover { background: #1f2937; color: #fff; }
+        .site-nav-link.active { background: #047857; color: #fff; }
+        .site-nav-link:focus-visible, .site-brand:focus-visible {
+            outline: 3px solid #b78b3e;
+            outline-offset: 3px;
+        }
+        .profile-menu { position: relative; flex: 0 0 auto; color: #f8fafc; }
+        .profile-trigger { display: flex; align-items: center; gap: 10px; padding: 5px 9px; border: 1px solid transparent; border-radius: 12px; background: transparent; color: inherit; cursor: pointer; list-style: none; transition: background .18s,border-color .18s; }
+        .profile-trigger::-webkit-details-marker { display: none; }
+        .profile-trigger:hover, .profile-menu[open] .profile-trigger { border-color: #35574b; background: #1f2937; }
+        .profile-avatar { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; border-radius: 50%; background: #047857; color: #fff; font-size: 1rem; font-weight: 750; }
+        .profile-summary { display: flex; min-width: 100px; flex-direction: column; text-align: left; line-height: 1.25; }
+        .profile-full-name { max-width: 180px; overflow: hidden; color: #fff; font-size: .84rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+        .profile-username { margin-top: 3px; color: #aab7b1; font-size: .74rem; }
+        .profile-chevron { color: #aab7b1; font-size: .75rem; transition: transform .18s; }
+        .profile-menu[open] .profile-chevron { transform: rotate(180deg); }
+        .profile-dropdown { position: absolute; top: calc(100% + 12px); right: 0; z-index: 2050; width: 260px; padding: 9px; border: 1px solid #dce4dc; border-radius: 14px; background: #fffefa; box-shadow: 0 18px 45px #071b1433; color: #1f2933; animation: profile-in .16s ease-out; }
+        @keyframes profile-in { from { opacity: 0; transform: translateY(-5px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .profile-dropdown-heading { padding: 10px 11px 12px; border-bottom: 1px solid #e7ece7; }
+        .profile-dropdown-heading strong,.profile-dropdown-heading span { display:block; overflow-wrap:anywhere; }
+        .profile-dropdown-heading strong { font-size: .91rem; }
+        .profile-dropdown-heading span { margin-top: 4px; color: #68756f; font-size: .8rem; }
+        .profile-dropdown a,.profile-logout { display: block; width: 100%; padding: 10px 11px; border: 0; border-radius: 9px; background: none; color: #34423b; font: inherit; font-size: .87rem; text-align: left; text-decoration: none; }
+        .profile-dropdown a:hover,.profile-logout:hover { background: #edf5ef; color: #065f46; }
+        .profile-logout { cursor: pointer; }        .skip-link {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            z-index: 2100;
+            padding: 9px 12px;
+            transform: translateY(-150%);
+            border: 2px solid #b78b3e;
+            background: #fbfcf8;
+            color: #1f3733;
+        }
+        .skip-link:focus { transform: translateY(0); }
+        .site-messages { width: 100%; max-width: 2160px; margin: 14px auto 0; padding: 0 clamp(24px, 3.2vw, 64px); box-sizing: border-box; }
+        .site-messages .alert { margin-bottom: 8px; }
+        .logout-modal-backdrop { position: fixed; inset: 0; z-index: 5000; display: none; align-items: center; justify-content: center; padding: 20px; background: rgb(15 23 42 / 55%); }
+        .logout-modal-backdrop.is-open { display: flex; }
+        .logout-modal { width: min(100%, 420px); padding: 26px; border: 1px solid #e2e8f0; border-radius: 18px; background: #fff; box-shadow: 0 24px 70px rgb(15 23 42 / 28%); color: #1f2937; text-align: center; }
+        .logout-modal-icon { display: grid; width: 52px; height: 52px; margin: 0 auto 14px; place-items: center; border-radius: 50%; background: #ecfdf5; color: #047857; font-size: 1.2rem; }
+        .logout-modal h2 { margin: 0 0 8px; font-size: 1.2rem; font-weight: 700; }
+        .logout-modal p { margin: 0 0 22px; color: #64748b; font-size: .92rem; }
+        .logout-modal-actions { display: flex; justify-content: center; gap: 10px; }
+        .logout-modal-actions button { min-width: 112px; padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 9px; background: #fff; color: #374151; font: inherit; font-weight: 600; cursor: pointer; }
+        .logout-modal-actions .confirm-logout { border-color: #047857; background: #047857; color: #fff; }
+        .action-confirm-backdrop { position: fixed; inset: 0; z-index: 5100; display: none; align-items: center; justify-content: center; padding: 20px; background: rgb(15 23 42 / 55%); }
+        .action-confirm-backdrop.is-open { display: flex; }
+        .action-confirm-dialog { width: min(100%, 420px); padding: 26px; border: 1px solid #e2e8f0; border-radius: 18px; background: #fff; box-shadow: 0 24px 70px rgb(15 23 42 / 28%); color: #1f2937; text-align: center; }
+        .action-confirm-dialog h2 { margin: 0 0 8px; font-size: 1.2rem; font-weight: 700; }
+        .action-confirm-dialog p { margin: 0 0 22px; color: #64748b; font-size: .92rem; }
+        .action-confirm-fields { display: grid; gap: 7px; margin-bottom: 20px; text-align: left; }
+        .action-confirm-fields label { margin-top: 5px; color: #344158; font-size: .85rem; font-weight: 650; }
+        .action-confirm-fields input,.action-confirm-fields textarea { width: 100%; padding: 10px 12px; border: 1px solid #d4ddd5; border-radius: 8px; background: #fff; color: #1f2937; font: inherit; font-size: .9rem; }
+        .action-confirm-fields input:focus,.action-confirm-fields textarea:focus { outline: 3px solid rgb(4 120 87 / 18%); border-color: #047857; }
+        .action-confirm-actions { display: flex; justify-content: center; gap: 10px; }
+        .action-confirm-actions button { min-width: 112px; padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 9px; background: #fff; color: #374151; font: inherit; font-weight: 600; cursor: pointer; }
+        .action-confirm-actions .confirm-delete { border-color: #b91c1c; background: #b91c1c; color: #fff; }
+        @media (max-width: 640px) {
+            .site-navbar .container { min-height: 0; align-items: stretch; flex-direction: column; gap: 8px; padding: 10px 18px; }
+            .site-nav-links { width: 100%; justify-content: flex-end; gap: 3px; margin-left: 0; }
+            .site-nav-link { min-height: 38px; padding: 7px 9px; font-size: .84rem; }
+            .profile-menu { align-self: flex-end; }
+            .site-messages { padding: 0 18px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .site-nav-link { transition: none; }
+        }
+    </style>
+
+  
+  </head>
+<body style="background-color: #eef2ec;">
+{% if request.resolver_match.url_name == 'home' or request.resolver_match.url_name == 'student_details' or request.resolver_match.url_name == 'course_details' or request.resolver_match.url_name == 'fee_details' or request.resolver_match.url_name == 'addstudent' %}
+    <a class="skip-link" href="#main-content">Skip to content</a>
+{% endif %}
+<header class="site-navbar">
+    <nav class="container" aria-label="Main navigation">
+        <a class="site-brand" href="{% url 'home' %}">
+            <span class="site-brand-mark" aria-hidden="true"><i class="fa-solid {% if request.resolver_match.url_name == 'home' or request.resolver_match.url_name == 'student_details' or request.resolver_match.url_name == 'course_details' or request.resolver_match.url_name == 'fee_details' %}fa-building-columns{% else %}fa-graduation-cap{% endif %}"></i></span>
+            <span class="site-brand-name">{% if request.resolver_match.url_name == 'home' or request.resolver_match.url_name == 'student_details' or request.resolver_match.url_name == 'course_details' or request.resolver_match.url_name == 'fee_details' %}GTEC{% else %}Student Fee Manager{% endif %}</span>
+            {% if request.resolver_match.url_name == 'home' or request.resolver_match.url_name == 'student_details' or request.resolver_match.url_name == 'course_details' or request.resolver_match.url_name == 'fee_details' %}<span class="site-brand-suite">Fee Management Suite</span>{% endif %}
+        </a>
+        <div class="site-nav-links">
+            <a href="{% url 'home' %}" class="site-nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" {% if request.resolver_match.url_name == 'home' %}aria-current="page"{% endif %}>{% if request.resolver_match.url_name == 'home' or request.resolver_match.url_name == 'student_details' or request.resolver_match.url_name == 'course_details' or request.resolver_match.url_name == 'fee_details' %}Dashboard{% else %}Home{% endif %}</a>
+            <a href="{% url 'student_details' %}" class="site-nav-link {% if request.resolver_match.url_name == 'student_details' %}active{% endif %}" {% if request.resolver_match.url_name == 'student_details' %}aria-current="page"{% endif %}>Students</a>
+            <a href="{% url 'course_details' %}" class="site-nav-link {% if request.resolver_match.url_name == 'course_details' %}active{% endif %}" {% if request.resolver_match.url_name == 'course_details' %}aria-current="page"{% endif %}>Courses</a>
+            <a href="{% url 'fee_details' %}" class="site-nav-link {% if request.resolver_match.url_name == 'fee_details' %}active{% endif %}" {% if request.resolver_match.url_name == 'fee_details' %}aria-current="page"{% endif %}>Fee Management</a>
+        </div>
+        {% if request.user.is_authenticated %}
+        {% firstof request.user.get_full_name request.user.username as profile_name %}
+        <details class="profile-menu"><summary class="profile-trigger" aria-label="Open user profile menu"><span class="profile-avatar" aria-hidden="true">{{ profile_name|slice:":1"|upper }}</span><i class="fa-solid fa-chevron-down profile-chevron" aria-hidden="true"></i></summary><div class="profile-dropdown"><div class="profile-dropdown-heading"><strong>{{ profile_name }}</strong><span>@{{ request.user.username }}</span><span>User Type: {% if request.user.is_superuser %}Administrator{% else %}User{% endif %}</span></div>{% if request.user.is_superuser %}<a href="{% url 'add_user' %}">Add User</a><a href="{% url 'user_list' %}">Manage Users</a><a href="{% url 'audit_log' %}">Deletion Audit Log</a>{% endif %}<a href="{% url 'totp_setup' %}">Authenticator App (TOTP)</a><a href="{% url 'password_reset' %}">Reset Password</a>{% if not request.user.is_superuser %}<form method="post" action="{% url 'delete_account' %}" data-confirm-delete data-confirm-message="Delete your account permanently? Enter your reason and password to continue.">{% csrf_token %}<button class="profile-logout" type="submit">Delete Account</button></form>{% endif %}<form id="logout-form" method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="profile-logout" type="button" id="logout-trigger">Logout</button></form></div></details>
+        {% endif %}
+    </nav>
+</header>
+
+{% if messages %}
+    <div class="site-messages" aria-label="Notifications">
+        {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}"
+                 role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}">{{ message }}</div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+{% block content %}
+{% endblock %}
+
+{% if request.user.is_authenticated %}
+<div class="action-confirm-backdrop" id="delete-confirm-modal" aria-hidden="true">
+    <section class="action-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-confirm-title" aria-describedby="delete-confirm-message">
+        <h2 id="delete-confirm-title">Confirm deletion</h2>
+        <p id="delete-confirm-message">Are you sure you want to delete this record?</p>
+        <div class="action-confirm-fields">
+            <div id="delete-reason-field">
+            <label for="delete-confirm-reason">Reason for deletion</label>
+            <textarea id="delete-confirm-reason" rows="3" required maxlength="1000" placeholder="Enter why this record is being deleted"></textarea>
+            </div>
+            <label for="delete-confirm-password">Your password</label>
+            <input id="delete-confirm-password" type="password" autocomplete="current-password" required>
+        </div>
+        <div class="action-confirm-actions"><button type="button" id="cancel-delete">Cancel</button><button type="button" class="confirm-delete" id="confirm-delete">Delete</button></div>
+    </section>
+</div>
+<div class="logout-modal-backdrop" id="logout-modal" aria-hidden="true">
+    <section class="logout-modal" role="dialog" aria-modal="true" aria-labelledby="logout-modal-title" aria-describedby="logout-modal-description">
+        <div class="logout-modal-icon" aria-hidden="true"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
+        <h2 id="logout-modal-title">Log out?</h2>
+        <p id="logout-modal-description">Are you sure you want to log out of your account?</p>
+        <div class="logout-modal-actions">
+            <button type="button" id="cancel-logout">Cancel</button>
+            <button type="submit" form="logout-form" class="confirm-logout">Log out</button>
+        </div>
+    </section>
+</div>
+<script>
+    (() => {
+        const modal = document.getElementById('logout-modal');
+        const trigger = document.getElementById('logout-trigger');
+        const cancel = document.getElementById('cancel-logout');
+        if (!modal || !trigger || !cancel) return;
+        const closeModal = () => {
+            modal.classList.remove('is-open');
+            modal.setAttribute('aria-hidden', 'true');
+            trigger.focus();
+        };
+        trigger.addEventListener('click', () => {
+            document.querySelector('.profile-menu')?.removeAttribute('open');
+            modal.classList.add('is-open');
+            modal.setAttribute('aria-hidden', 'false');
+            cancel.focus();
+        });
+        cancel.addEventListener('click', closeModal);
+        modal.addEventListener('click', (event) => { if (event.target === modal) closeModal(); });
+        document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && modal.classList.contains('is-open')) closeModal(); });
+    })();
+    (() => {
+        const modal = document.getElementById('delete-confirm-modal');
+        const message = document.getElementById('delete-confirm-message');
+        const cancel = document.getElementById('cancel-delete');
+        const confirmButton = document.getElementById('confirm-delete');
+        const reason = document.getElementById('delete-confirm-reason');
+        const reasonField = document.getElementById('delete-reason-field');
+        const password = document.getElementById('delete-confirm-password');
+        if (!modal || !message || !cancel || !confirmButton || !reason || !password) return;
+        let pendingForm = null;
+        const closeModal = () => {
+            modal.classList.remove('is-open');
+            modal.setAttribute('aria-hidden', 'true');
+            if (pendingForm) pendingForm.querySelector('button[type="submit"]')?.focus();
+            pendingForm = null;
+            reason.value = '';
+            password.value = '';
+        };
+        document.addEventListener('submit', (event) => {
+            const form = event.target.closest('form[data-confirm-delete], form[onsubmit*="confirm("]');
+            if (!form || form.dataset.confirmed === 'true') return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            pendingForm = form;
+            message.textContent = form.dataset.confirmMessage || 'Are you sure you want to delete this record?';
+            reason.value = '';
+            password.value = '';
+            const requireReason = form.dataset.requireReason !== 'false';
+            reasonField.hidden = !requireReason;
+            reason.required = requireReason;
+            modal.classList.add('is-open');
+            modal.setAttribute('aria-hidden', 'false');
+            (requireReason ? reason : password).focus();
+        }, true);
+        cancel.addEventListener('click', closeModal);
+        modal.addEventListener('click', (event) => { if (event.target === modal) closeModal(); });
+        confirmButton.addEventListener('click', () => {
+            if (!pendingForm) return;
+            const requireReason = pendingForm.dataset.requireReason !== 'false';
+            if (requireReason && !reason.value.trim()) { reason.setCustomValidity('Enter a reason for deleting this record.'); reason.reportValidity(); reason.setCustomValidity(''); return; }
+            if (!password.value) { password.reportValidity(); return; }
+            const form = pendingForm;
+            form.querySelectorAll('[name="deletion_reason"], [name="deletion_password"]').forEach(input => input.remove());
+            if (requireReason) {
+                const reasonInput = document.createElement('input');
+                reasonInput.type = 'hidden';
+                reasonInput.name = 'deletion_reason';
+                reasonInput.value = reason.value.trim();
+                form.appendChild(reasonInput);
+            }
+            const passwordField = document.createElement('input');
+            passwordField.type = 'hidden';
+            passwordField.name = 'deletion_password';
+            passwordField.value = password.value;
+            form.appendChild(passwordField);
+            password.value = '';
+            form.dataset.confirmed = 'true';
+            HTMLFormElement.prototype.submit.call(form);
+        });
+        document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && modal.classList.contains('is-open')) closeModal(); });
+    })();
+</script>
+{% endif %}
+
+
+
+
+</body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

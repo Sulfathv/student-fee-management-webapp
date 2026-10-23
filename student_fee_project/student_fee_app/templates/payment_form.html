@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Payment</title>
+</head>
+
+<body>
+
+<div>
+
+<form action="{% url 'addfee' %}" method="post">
+    {% csrf_token %}
+
+    <!-- STUDENT -->
+    <div class="form-group">
+
+        <label for="student_name">Student Name:</label>
+
+        <input type="text"
+               class="form-control"
+               id="student_name"
+               name="student_name"
+               list="studentList"
+               placeholder="Type student name"
+               autocomplete="off"
+               required>
+
+        <datalist id="studentList">
+
+            {% for enrollment in enrollments %}
+
+                <option value="{{ enrollment.student.name }}">
+
+            {% endfor %}
+
+        </datalist>
+
+    </div>
+
+
+    <!-- COURSE -->
+    <div class="form-group">
+
+        <label for="course_name">Course Name:</label>
+
+        <input type="text"
+               class="form-control"
+               id="course_name"
+               name="course_name"
+               list="courseList"
+               placeholder="Course name"
+               required>
+
+        <datalist id="courseList">
+
+            {% for enrollment in enrollments %}
+
+                <option value="{{ enrollment.course.course_name }}">
+
+            {% endfor %}
+
+        </datalist>
+
+    </div>
+
+
+    <!-- ENROLLMENT ID -->
+    <input type="hidden"
+           name="enrollment_id"
+           id="enrollment_id">
+
+
+    <!-- PAYMENT DATE -->
+    <div class="form-group">
+
+        <label for="payment_date">Payment Date:</label>
+
+        <input type="date"
+               class="form-control"
+               id="payment_date"
+               name="payment_date"
+               required>
+
+    </div>
+
+
+    <!-- AMOUNT -->
+    <div class="form-group">
+
+        <label for="amount">Amount:</label>
+
+        <input type="number"
+               class="form-control"
+               id="amount"
+               name="amount"
+               min="1"
+               required>
+
+    </div>
+
+
+    <button type="submit" class="btn btn-primary">
+        Add Payment
+    </button>
+
+</form>
+
+</div>
+
+
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,82 @@
+{% extends "auth_base.html" %}
+{% block card_class %}{% if totp_enabled %}totp-auth-card--enabled{% else %}totp-auth-card--setup{% endif %}{% endblock %}
+{% block title %}Authenticator App · GTEC{% endblock %}
+{% block content %}
+<style>
+    .auth-card.totp-auth-card--setup { width: min(100%, 1040px); padding: clamp(30px, 4vw, 56px); }
+    .auth-card.totp-auth-card--enabled { width: min(100%, 560px); }
+    .totp-auth-card--setup .auth-brand { margin-bottom: 34px; }
+    .totp-auth-card--setup h1 { font-size: clamp(2.1rem, 3vw, 2.8rem); }
+    .totp-setup-note { margin: 0 0 22px; color: #68756f; }
+    .totp-enrollment { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); gap: 22px; margin-bottom: 24px; }
+    .totp-option { min-width: 0; padding: 22px; border: 1px solid #dce4dc; border-radius: 12px; background: #fff; }
+    .totp-option h2 { margin: 0 0 6px; color: #1f2933; font-size: 1rem; font-weight: 700; }
+    .totp-option p { margin: 0 0 13px; color: #68756f; font-size: .82rem; }
+    .totp-qr-frame { display: grid; min-height: 264px; place-items: center; padding: 18px; border: 1px solid #edf0ed; border-radius: 9px; background: #fbfcfa; }
+    #totp-qr canvas, #totp-qr img { display: block; max-width: 100%; height: auto; }
+    .totp-secret-row { display: flex; gap: 7px; }
+    .totp-secret-row .form-control { min-width: 0; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .9rem; letter-spacing: .06em; }
+    .totp-copy { flex: 0 0 auto; padding: 0 16px; border: 1px solid #d4ddd5; border-radius: 9px; background: #f7f8f1; color: #065f46; font-size: .86rem; font-weight: 650; }
+    .totp-code-panel { max-width: 680px; margin: 0 auto; padding-top: 22px; border-top: 1px solid #e8eee8; }
+    .totp-code-help { margin: -9px 0 17px; color: #68756f; font-size: .82rem; }
+    .totp-regenerate { display: block; margin: 13px auto 0; padding: 6px 10px; border: 0; background: transparent; color: #526056; font: inherit; font-size: .82rem; text-decoration: underline; text-underline-offset: 3px; }
+    @media (max-width: 760px) { .auth-card.totp-auth-card--setup { width: min(100%, 560px); padding: 26px; } .totp-enrollment { grid-template-columns: 1fr; gap: 14px; } .totp-qr-frame { min-height: 230px; } }
+    @media (max-width: 520px) { .auth-card.totp-auth-card--setup { padding: 22px; } .totp-option { padding: 17px; } }
+</style>
+<h1>Authenticator app</h1>
+{% if errors %}<div class="alert alert-danger" role="alert"><ul class="mb-0">{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul></div>{% endif %}
+{% if totp_enabled %}
+    <p class="auth-subtitle">Authenticator setup is complete for your account. You only need to enroll once; your authenticator code will be requested when you sign in.</p>
+{% else %}
+    <p class="totp-setup-note">In your authenticator app, choose “Add account” and scan this QR code, or enter the secret key shown here manually. Make sure your phone’s date and time are set automatically.</p>
+    <div class="totp-enrollment">
+        <section class="totp-option" aria-labelledby="totp-qr-title">
+            <h2 id="totp-qr-title">Scan QR code</h2>
+            <p>Use Google Authenticator, Microsoft Authenticator, or another TOTP app.</p>
+            <div class="totp-qr-frame"><div id="totp-qr" data-provisioning-uri="{{ provisioning_uri }}" role="img" aria-label="Authenticator setup QR code"><span class="text-secondary small" id="totp-qr-status">Loading QR code…</span></div></div>
+        </section>
+        <section class="totp-option" aria-labelledby="totp-key-title">
+            <h2 id="totp-key-title">Enter secret key</h2>
+            <p>Choose manual setup in your app and enter this key as a time-based code.</p>
+            <label class="form-label" for="totp_secret">Secret key</label>
+            <div class="totp-secret-row"><input class="form-control" id="totp_secret" value="{{ totp_secret }}" readonly><button class="totp-copy" type="button" id="copy-totp-secret">Copy</button></div>
+            <div class="form-text" id="copy-totp-status" aria-live="polite">Keep this key private. It grants access to your authenticator codes.</div>
+        </section>
+    </div>
+    <form class="totp-code-panel" method="post">
+        {% csrf_token %}
+        <div class="mb-3"><label class="form-label" for="totp_code">Authenticator code</label><input class="form-control" id="totp_code" name="totp_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></div>
+        <p class="totp-code-help">Enter the current six-digit code from your authenticator app to finish setup.</p>
+        <button class="btn auth-submit" type="submit">Enable TOTP</button>
+    </form>
+{% endif %}
+<div class="auth-links"><a href="{% url 'home' %}">Back to Dashboard</a></div>
+{% if not totp_enabled %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" referrerpolicy="no-referrer"></script>
+<script>
+    (() => {
+        const qr = document.getElementById('totp-qr');
+        const status = document.getElementById('totp-qr-status');
+        if (qr && window.QRCode) {
+            status?.remove();
+            new QRCode(qr, { text: qr.dataset.provisioningUri, width: 220, height: 220, colorDark: '#111827', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+        } else if (status) {
+            status.textContent = 'QR code could not load. Use the secret key on the right for manual setup.';
+        }
+        const copyButton = document.getElementById('copy-totp-secret');
+        const secret = document.getElementById('totp_secret');
+        const copyStatus = document.getElementById('copy-totp-status');
+        copyButton?.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(secret.value);
+                copyStatus.textContent = 'Secret key copied. Keep it private.';
+            } catch {
+                secret.select();
+                document.execCommand('copy');
+                copyStatus.textContent = 'Secret key copied. Keep it private.';
+            }
+        });
+    })();
+</script>
+{% endif %}
+{% endblock %}

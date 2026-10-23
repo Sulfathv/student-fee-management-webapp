@@ -1,0 +1,162 @@
+{% extends "webapp.html" %}
+{% block content %}
+<style>
+    body:has(.course-catalog) { background:#faf9f5 !important; color:#1c2520; font-family:"Plus Jakarta Sans",Inter,sans-serif; }
+    .course-catalog { --course-green:#176348; --course-ink:#1c2520; --course-muted:#526056; --course-line:#e8e6df; max-width:1720px; margin:auto; padding:26px clamp(18px,2.5vw,42px) 48px; }
+    .course-catalog * { box-sizing:border-box; }
+    .course-catalog a:focus-visible,.course-catalog button:focus-visible,.course-catalog input:focus-visible,.course-catalog select:focus-visible { outline:3px solid #e3ac37; outline-offset:2px; box-shadow:none; }
+    .course-crumb { display:flex; align-items:center; gap:9px; margin:0 0 5px; color:#78877e; font-size:.75rem; }
+    .course-crumb a { color:inherit; text-decoration:none; }
+    .course-crumb strong { color:#34453d; font-weight:700; }
+    .course-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
+    .course-title { margin:0; color:#2a3b35; font-size:clamp(1.6rem,2.4vw,2rem); font-weight:760; letter-spacing:-.045em; }
+    .course-tier { display:inline-block; margin-left:8px; vertical-align:middle; padding:5px 9px; border:1px solid #9be4c7; border-radius:5px; background:#def8ed; color:#086b52; font-size:.62rem; font-weight:750; letter-spacing:.04em; }
+    .course-description { margin:5px 0 0; color:var(--course-muted); font-size:.86rem; }
+    .course-primary { display:inline-flex; align-items:center; gap:8px; padding:10px 15px; border:0; border-radius:7px; background:var(--course-green); color:#fff; font-size:.79rem; font-weight:700; white-space:nowrap; }
+    .course-primary:hover { background:#06634f; color:white; }
+    .offer-panel,.catalog-panel { border:1px solid var(--course-line); border-radius:9px; background:white; }
+    .offer-panel { margin-top:22px; padding:20px 22px; }
+    .offer-header { display:flex; justify-content:space-between; align-items:center; gap:16px; padding-bottom:13px; border-bottom:1px solid #e8eee9; }
+    .offer-brand { display:flex; align-items:center; gap:12px; }
+    .offer-icon { display:grid; width:39px; height:39px; place-items:center; border-radius:7px; background:var(--course-green); color:white; font-size:1rem; }
+    .offer-title { margin:0; color:#33443d; font-size:1rem; font-weight:730; }
+    .offer-tag { display:inline-block; margin-left:8px; padding:4px 7px; border:1px solid #9be4c7; border-radius:4px; background:#e9fff5; color:#08765b; font-size:.61rem; font-weight:700; }
+    .offer-caption { margin:3px 0 0; color:#7e8b84; font-size:.72rem; }
+    .offer-toggle { display:flex; align-items:center; gap:10px; padding:8px 11px; border:1px solid var(--course-line); border-radius:7px; background:#f7faf7; color:#34463e; font-size:.69rem; }
+    .offer-toggle small { display:block; margin-top:2px; color:#839087; font-size:.61rem; }
+    .offer-toggle input { width:36px; height:20px; accent-color:var(--course-green); }
+    .offer-grid { display:grid; grid-template-columns:1.2fr .85fr; gap:20px; padding-top:17px; }
+    .offer-date-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .offer-form { display:grid; gap:12px; padding:15px; border:1px solid var(--course-line); border-radius:8px; background:#f9fbf8; }
+    .offer-field { display:grid; gap:5px; }
+    .offer-field label { color:#3f5048; font-size:.7rem; font-weight:700; }
+    .offer-field input { min-height:38px; width:100%; padding:8px 10px; border:1px solid #dce5dd; border-radius:6px; background:white; color:#34453d; font-size:.78rem; }
+    .offer-form-foot { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .offer-note { color:#7b8981; font-size:.66rem; }
+    .offer-submit { padding:9px 12px; border:0; border-radius:6px; background:var(--course-green); color:white; font-size:.7rem; font-weight:700; }
+    .offer-preview { padding:15px; border:1px solid #9be4c7; border-radius:8px; background:linear-gradient(140deg,#fbfffc,#f3fbf6); }
+    .offer-preview-heading { display:flex; justify-content:space-between; align-items:center; gap:10px; color:#355148; font-size:.72rem; font-weight:750; }
+    .offer-preview-heading i { color:#078266; }
+    .offer-sample { margin-top:12px; padding:12px; border:1px solid #d7e8dc; border-radius:6px; background:white; }
+    .offer-sample-label { margin:0 0 7px; color:#7a8980; font-size:.62rem; font-weight:700; text-transform:uppercase; }
+    .offer-prices { display:flex; align-items:center; gap:9px; flex-wrap:wrap; color:#85918a; font-size:.8rem; }
+    .offer-original { text-decoration:line-through; }
+    .offer-final { color:#078063; font-size:1rem; font-weight:750; }
+    .offer-savings { display:flex; justify-content:space-between; gap:8px; margin-top:9px; padding:8px 9px; border:1px solid #d3f1e2; border-radius:5px; background:#effcf5; color:#356354; font-size:.7rem; }
+    .offer-savings strong { color:#078063; }
+    .offer-impact-foot { display:flex; justify-content:space-between; gap:12px; margin-top:11px; color:#74827b; font-size:.65rem; }
+    .catalog-panel { margin-top:22px; overflow:hidden; }
+    .catalog-header { display:flex; justify-content:space-between; align-items:center; gap:15px; padding:15px 17px; border-bottom:1px solid #e5ebe6; }
+    .catalog-heading h2 { margin:0; color:#35463f; font-size:.96rem; font-weight:730; }
+    .catalog-heading p { margin:2px 0 0; color:#7c8982; font-size:.7rem; }
+    .catalog-filters { display:flex; align-items:center; justify-content:flex-end; gap:8px; }
+    .catalog-search { position:relative; }
+    .catalog-search i { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#839087; }
+    .catalog-search input,.catalog-select { min-height:35px; padding:7px 9px; border:1px solid #dce5dd; border-radius:6px; background:#f9fbf9; color:#56665e; font-size:.7rem; }
+    .catalog-search input { width:min(230px,25vw); padding-left:29px; }
+    .catalog-select { min-width:145px; }
+    .catalog-table-wrap { overflow:auto; }
+    .catalog-table { width:100%; min-width:1120px; border-collapse:collapse; }
+    .catalog-table th { padding:10px; border-bottom:1px solid #dfe8e1; background:#f7faf7; color:#77877e; font-size:.62rem; font-weight:750; text-align:left; text-transform:uppercase; }
+    .catalog-table td { padding:12px 10px; border-bottom:1px solid #e9efea; color:#607067; font-size:.71rem; vertical-align:middle; }
+    .catalog-table tbody tr:last-child td { border-bottom:0; }
+    .catalog-table tbody tr:hover { background:#fcfefc; }
+    .course-code { color:#087d61 !important; font-weight:750; white-space:nowrap; }
+    .course-name-cell { display:flex; align-items:center; gap:9px; min-width:165px; color:#34463e !important; font-weight:700; }
+    .course-monogram { display:grid; width:27px; height:27px; flex:none; place-items:center; border-radius:6px; background:#d7f5e7; color:#08785c; font-size:.62rem; font-weight:800; }
+    .course-name-cell small { display:block; margin-top:3px; color:#829087; font-size:.62rem; font-weight:400; }
+    .course-division { min-width:118px; color:#6f7d75 !important; }
+    .course-duration { white-space:nowrap; }
+    .course-division-pill { display:inline-block; margin:2px 2px 2px 0; padding:4px 6px; border:1px solid #dce7dd; border-radius:4px; background:#f7faf7; color:#53665b; font-size:.6rem; white-space:nowrap; }
+    .course-enrolled { display:inline-block; padding:4px 7px; border:1px solid #dce7dd; border-radius:999px; background:#f6faf7; color:#41544a; font-size:.64rem; text-align:center; }
+    .catalog-money { white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .catalog-money--discount { color:#078063 !important; font-weight:750; }
+    .catalog-money small { display:block; margin-top:2px; color:#849088; font-size:.6rem; font-weight:400; }
+    .course-state { display:inline-flex; padding:5px 8px; border:1px solid #a1e9c9; border-radius:999px; background:#edfff6; color:#078063; font-size:.62rem; font-weight:700; }
+    .catalog-empty { padding:42px 18px !important; color:#77877e !important; text-align:center; }
+    .catalog-empty strong { display:block; margin-bottom:4px; color:#34463e; font-size:.92rem; }
+    .course-actions { display:flex; gap:5px; white-space:nowrap; }
+    .course-action { display:grid; width:28px; height:28px; place-items:center; border:0; border-radius:5px; background:transparent; color:#75857c; text-decoration:none; }
+    .course-action:hover { background:#eff8f3; color:#087c61; }
+    .catalog-footer { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 14px; border-top:1px solid #dfe8e1; background:#f7faf7; color:#7b8880; font-size:.67rem; }
+    .catalog-meta { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+    .catalog-rows { display:flex; align-items:center; gap:6px; }
+    .catalog-rows select { height:28px; border:1px solid #dce5dd; border-radius:5px; background:white; font-size:.67rem; }
+    .catalog-pagination { display:flex; align-items:center; gap:4px; }
+    .catalog-pagination a,.catalog-pagination span { min-width:27px; padding:5px 7px; border:1px solid #dce5dd; border-radius:5px; background:white; color:#52645a; text-align:center; text-decoration:none; }
+    .catalog-pagination .current { border-color:#087b61; background:#087b61; color:white; }
+    .catalog-pagination .current { border-color:#176348; background:#176348; }
+    .catalog-pagination .disabled { color:#aab4ad; }
+    .course-footer { display:flex; justify-content:space-between; gap:12px; margin-top:24px; padding:12px 0; border-top:1px solid #e1e9e2; color:#78857e; font-size:.67rem; }
+    @media(max-width:950px) { .offer-grid { grid-template-columns:1fr; } .catalog-header { align-items:flex-start; flex-direction:column; } .catalog-filters { width:100%; justify-content:flex-start; } .catalog-search { flex:1; } .catalog-search input { width:100%; } }
+    @media(max-width:640px) { .course-catalog { padding:20px 14px 35px; } .course-heading { flex-direction:column; } .course-primary { justify-content:center; } .course-tier { margin:8px 0 0; } .offer-panel { padding:14px; } .offer-header { align-items:flex-start; flex-direction:column; } .offer-form-foot { align-items:flex-start; flex-direction:column; } .catalog-filters { flex-wrap:wrap; } .catalog-search { flex-basis:100%; } .catalog-select { flex:1; } .catalog-footer { align-items:flex-start; flex-direction:column; } .course-footer { flex-direction:column; } }
+</style>
+
+<main class="course-catalog" id="main-content" tabindex="-1">
+    <nav class="course-crumb" aria-label="Breadcrumb"><a href="{% url 'home' %}">Academic operations</a><span aria-hidden="true">›</span><span>Curriculum &amp; bursar</span><span aria-hidden="true">›</span><strong>Course catalog &amp; pricing</strong></nav>
+    <header class="course-heading"><div><h1 class="course-title">Course Catalog &amp; Pricing Management <span class="course-tier">COURSE CATALOG</span></h1><p class="course-description">Manage program fee structures, divisions, student enrollment counts, and the institution-wide offer.</p></div><button class="course-primary" type="button" data-bs-toggle="modal" data-bs-target="#addCourseModal"><i class="fa-solid fa-circle-plus" aria-hidden="true"></i> Add new course</button></header>
+
+    <section class="offer-panel" aria-labelledby="offer-manager-title">
+        <header class="offer-header"><div class="offer-brand"><span class="offer-icon"><i class="fa-solid fa-tags" aria-hidden="true"></i></span><div><h2 class="offer-title" id="offer-manager-title">{{ offer_name|default:"Global offer" }} <span class="offer-tag">Global fee offer</span></h2><p class="offer-caption">Set the percentage reduction and dates for new enrollments across the course catalog.</p></div></div><span class="offer-tag">{% if offer_active %}Active in enrollment pricing{% elif offer_enabled %}Scheduled{% else %}Disabled{% endif %}</span></header>
+        <div class="offer-grid">
+            <form class="offer-form" id="offer-settings-form" method="post" action="{% url 'update_offer' %}">{% csrf_token %}<div class="offer-field"><label for="offerName">Offer name</label><input id="offerName" type="text" name="offer_name" value="{{ offer_name|default:'' }}" maxlength="100" placeholder="e.g. Admissions offer" required></div><div class="offer-field"><label for="offerValue">Common offer percentage</label><input id="offerValue" type="number" name="offer_value" value="{{ offer|default:'0' }}" min="0" max="100" step="0.01" required></div><div class="offer-date-grid"><div class="offer-field"><label for="offerStartDate">Starts on</label><input id="offerStartDate" type="date" name="start_date" value="{{ offer_start_date|date:'Y-m-d' }}"><small class="offer-note">Leave blank for no start limit.</small></div><div class="offer-field"><label for="offerEndDate">Ends on</label><input id="offerEndDate" type="date" name="end_date" value="{{ offer_end_date|date:'Y-m-d' }}"><small class="offer-note">Leave blank for no end limit.</small></div></div><div class="offer-form-foot"><span class="offer-note">Applied to new enrollments during the selected period. Existing enrollments keep their recorded fees.</span><div><button class="btn btn-outline-danger btn-sm" type="submit" name="action" value="cancel" formnovalidate>Cancel offer</button> <button class="offer-submit" type="submit"><i class="fa-regular fa-floppy-disk" aria-hidden="true"></i> Save offer settings</button></div></div></form>
+            <aside class="offer-preview" aria-label="Live fee preview"><div class="offer-preview-heading"><span><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Live fee preview</span><span class="offer-tag">Calculated from catalog</span></div>
+                {% if preview_course %}<div class="offer-sample"><p class="offer-sample-label">{{ preview_course.course_name }} · {{ preview_course.c_reg|default:"Course" }}</p><div class="offer-prices"><span class="offer-original" data-currency="{{ preview_course.course_fee }}">₹{{ preview_course.course_fee|floatformat:2 }}</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i><strong class="offer-final" id="previewFee" data-base="{{ preview_course.course_fee }}">₹{{ preview_course.final_fee|floatformat:2 }}</strong></div><div class="offer-savings"><span>Student fee reduction</span><strong id="previewSavings" data-base="{{ preview_course.course_fee }}">₹{{ preview_course.discount_amount|floatformat:2 }}</strong></div></div><div class="offer-impact-foot"><span id="previewRate">{% if offer_active %}{{ offer|floatformat:2 }}% offer{% else %}No active offer{% endif %}</span><strong>{{ preview_course.student_count }} currently enrolled in this course</strong></div>{% else %}<div class="offer-sample"><strong>No courses in the catalog</strong><p class="offer-caption">Add a course to preview the fee reduction.</p></div>{% endif %}
+            </aside>
+        </div>
+    </section>
+
+    <section class="catalog-panel" aria-labelledby="catalog-title">
+        <header class="catalog-header"><div class="catalog-heading"><h2 id="catalog-title">Curricular fee directory</h2><p>Course specifications, divisions, enrollment totals, and current fee calculations.</p></div><form class="catalog-filters" method="get" action="{% url 'course_details' %}"><label class="catalog-search"><span class="visually-hidden">Filter by course code or name</span><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input type="search" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Filter code, program, or division"></label><label class="visually-hidden" for="divisionFilter">Filter divisions</label><select class="catalog-select" name="division" id="divisionFilter" onchange="this.form.submit()"><option value="">All divisions</option>{% for division in divisions %}<option value="{{ division }}"{% if selected_division == division %} selected{% endif %}>{% if division == "A" %}Accounting{% elif division == "B" %}Software{% elif division == "C" %}Multimedia{% elif division == "D" %}CAD{% else %}{{ division }}{% endif %}</option>{% endfor %}</select><button class="course-action" type="submit" aria-label="Apply catalog filters"><i class="fa-solid fa-filter" aria-hidden="true"></i></button></form></header>
+        <div class="catalog-table-wrap" role="region" aria-label="Course catalog table" tabindex="0"><table class="catalog-table"><thead><tr><th>Course code</th><th>Course name</th><th>Department / division</th><th>Duration</th><th>Standard base fee</th><th>Discounted fee{% if offer_active %} ({{ offer|floatformat:0 }}%){% endif %}</th><th>Enrollment</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+        {% for course in courses %}<tr><td class="course-code">{{ course.c_reg|default:"—" }}</td><td class="course-name-cell"><span class="course-monogram">{{ course.course_name|slice:":2"|upper }}</span><span>{{ course.course_name }}</span></td><td class="course-division">{% if course.division == "A" %}Accounting{% elif course.division == "B" %}Software{% elif course.division == "C" %}Multimedia{% elif course.division == "D" %}CAD{% else %}{{ course.division|default:"Not set" }}{% endif %}</td><td class="course-duration">{{ course.duration }} months</td><td class="catalog-money" data-currency="{{ course.course_fee }}">₹{{ course.course_fee|floatformat:2 }}</td><td class="catalog-money catalog-money--discount" data-currency="{{ course.final_fee }}">₹{{ course.final_fee|floatformat:2 }}{% if offer_active %}<small>−<span data-currency="{{ course.discount_amount }}">₹{{ course.discount_amount|floatformat:2 }}</span></small>{% endif %}</td><td><span class="course-enrolled">{{ course.student_count }} student{{ course.student_count|pluralize }}</span></td><td><span class="course-state">Listed</span></td><td><div class="course-actions">{% if request.user.is_superuser %}<button class="course-action" type="button" data-bs-toggle="modal" data-bs-target="#editCourseModal{{ course.course_id }}" aria-label="Edit {{ course.course_name }}"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>{% endif %}<a class="course-action" href="{% url 'student_details' %}?q={{ course.course_name|urlencode }}" aria-label="View students in {{ course.course_name }}"><i class="fa-solid fa-users" aria-hidden="true"></i></a>{% if request.user.is_superuser %}<form method="post" action="{% url 'delete_course' course.course_id %}" onsubmit="return confirm('Delete course {{ course.course_name|escapejs }}? Courses with students or enrollments cannot be deleted.');">{% csrf_token %}<button class="course-action" type="submit" aria-label="Delete {{ course.course_name }}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></form>{% endif %}</div></td></tr>{% empty %}<tr><td colspan="9" class="catalog-empty"><strong>No courses match your filters</strong>Try a different course name or division, or add a course to the catalog.</td></tr>{% endfor %}
+        </tbody></table></div>
+        <footer class="catalog-footer"><div class="catalog-meta"><span>Showing {{ displayed_start }}–{{ displayed_end }} of {{ page_obj.paginator.count }} courses</span><span aria-hidden="true">·</span><span>{{ total_enrollments }} recorded enrollments</span></div><form class="catalog-rows" method="get" action="{% url 'course_details' %}"><label for="courseRows">Rows:</label><select id="courseRows" name="rows" onchange="this.form.submit()"><option value="10"{% if rows_per_page == '10' %} selected{% endif %}>10</option><option value="25"{% if rows_per_page == '25' %} selected{% endif %}>25</option><option value="50"{% if rows_per_page == '50' %} selected{% endif %}>50</option><option value="100"{% if rows_per_page == '100' %} selected{% endif %}>100</option><option value="250"{% if rows_per_page == '250' %} selected{% endif %}>250</option><option value="all"{% if rows_per_page == 'all' %} selected{% endif %}>All</option></select><input type="hidden" name="q" value="{{ request.GET.q|default:'' }}"><input type="hidden" name="division" value="{{ selected_division }}"></form><nav class="catalog-pagination" aria-label="Course catalog pages">{% if previous_page_url %}<a href="{{ previous_page_url }}">Previous</a>{% else %}<span class="disabled">Previous</span>{% endif %}<span class="current" aria-current="page">{{ page_obj.number }}</span>{% if next_page_url %}<a href="{{ next_page_url }}">Next</a>{% else %}<span class="disabled">Next</span>{% endif %}</nav></footer>
+    </section>
+    <footer class="course-footer"><span><strong>GTEC course catalog</strong> · Standard tuition and global offer pricing</span><span>Enrollment pricing uses the currently active offer</span></footer>
+
+    {% for course in courses %}<div class="modal fade" id="editCourseModal{{ course.course_id }}" tabindex="-1" aria-labelledby="editCourseLabel{{ course.course_id }}" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><form method="post" action="{% url 'editcourse' course.course_id %}">{% csrf_token %}<div class="modal-header"><h2 class="modal-title fs-5" id="editCourseLabel{{ course.course_id }}">Edit course</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label" for="editCode{{ course.course_id }}">Course code</label><input class="form-control" id="editCode{{ course.course_id }}" name="c_reg" value="{{ course.c_reg|default:'' }}" required></div><div class="mb-3"><label class="form-label" for="editName{{ course.course_id }}">Course name</label><input class="form-control" id="editName{{ course.course_id }}" name="course_name" value="{{ course.course_name }}" required></div><div class="mb-3"><label class="form-label" for="editDivision{{ course.course_id }}">Division</label><select class="form-select" id="editDivision{{ course.course_id }}" name="division" required>{% for division in divisions %}<option value="{{ division }}"{% if course.division == division %} selected{% endif %}>{% if division == "A" %}Accounting{% elif division == "B" %}Software{% elif division == "C" %}Multimedia{% elif division == "D" %}CAD{% else %}{{ division }}{% endif %}</option>{% endfor %}</select></div><div class="row"><div class="col-md-6 mb-3"><label class="form-label" for="editDuration{{ course.course_id }}">Duration in months</label><input class="form-control" id="editDuration{{ course.course_id }}" type="number" min="1" name="duration" value="{{ course.duration }}" required></div><div class="col-md-6 mb-3"><label class="form-label" for="editFee{{ course.course_id }}">Base fee</label><input class="form-control" id="editFee{{ course.course_id }}" type="number" min="0" step="0.01" name="course_fee" value="{{ course.course_fee }}" required></div></div></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-success">Save course</button></div></form></div></div></div>{% endfor %}
+
+    <div class="modal fade" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><form action="{% url 'add_course' %}" method="post">{% csrf_token %}<div class="modal-header"><h2 class="modal-title fs-5" id="addCourseModalLabel">Add course</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label" for="newCode">Course code</label><input class="form-control" type="text" id="newCode" name="c_reg" required></div><div class="mb-3"><label class="form-label" for="newName">Course name</label><input class="form-control" type="text" id="newName" name="course_name" required></div><div class="mb-3"><label class="form-label" for="newDivision">Division</label><div class="input-group"><select class="form-select" id="newDivision" name="division" required><option value="">Select division</option>{% for division in divisions %}<option value="{{ division }}">{% if division == "A" %}Accounting{% elif division == "B" %}Software{% elif division == "C" %}Multimedia{% elif division == "D" %}CAD{% else %}{{ division }}{% endif %}</option>{% endfor %}</select><button class="btn btn-outline-success" type="button" data-bs-toggle="modal" data-bs-target="#addDivisionModal">Add division</button></div></div><div class="row"><div class="col-md-6 mb-3"><label class="form-label" for="newDuration">Duration in months</label><input class="form-control" type="number" id="newDuration" name="duration" min="1" required></div><div class="col-md-6 mb-3"><label class="form-label" for="newFee">Base fee</label><input class="form-control" type="number" id="newFee" name="course_fee" min="0" step="0.01" required></div></div></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-success">Add course</button></div></form></div></div></div>
+    <div class="modal fade" id="addDivisionModal" tabindex="-1" aria-labelledby="addDivisionModalLabel" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header"><h2 class="modal-title fs-6" id="addDivisionModalLabel">Add division</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><label class="form-label" for="newDivisionName">Division name</label><input class="form-control" id="newDivisionName" maxlength="20" placeholder="Enter division name"></div><div class="modal-footer"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-success" type="button" id="saveDivision">Add division</button></div></div></div></div>
+</main>
+<script>
+document.querySelectorAll("[data-currency]").forEach(element => {
+    element.textContent = "₹" + new Intl.NumberFormat("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(Number(element.dataset.currency) || 0);
+});
+const offerField = document.getElementById("offerValue");
+const offerSwitch = document.getElementById("enableOffer");
+const previewFee = document.getElementById("previewFee");
+const previewSavings = document.getElementById("previewSavings");
+const previewRate = document.getElementById("previewRate");
+function refreshOfferPreview() {
+    if (!offerField || !previewFee || !previewSavings) return;
+    const base = Number(previewFee.dataset.base) || 0;
+    const percent = offerSwitch && offerSwitch.checked ? Math.min(100, Math.max(0, Number(offerField.value) || 0)) : 0;
+    const savings = base * percent / 100;
+    const format = value => "₹" + new Intl.NumberFormat("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2}).format(value);
+    previewFee.textContent = format(base - savings);
+    previewSavings.textContent = format(savings);
+    if (previewRate) previewRate.textContent = percent ? percent + "% offer" : "No active offer";
+}
+if (offerField) offerField.addEventListener("input", refreshOfferPreview);
+if (offerSwitch) offerSwitch.addEventListener("change", refreshOfferPreview);
+refreshOfferPreview();
+const divisionNameField = document.getElementById("newDivisionName");
+const divisionSelect = document.getElementById("newDivision");
+const divisionModalElement = document.getElementById("addDivisionModal");
+const divisionModal = divisionModalElement && window.bootstrap ? bootstrap.Modal.getOrCreateInstance(divisionModalElement) : null;
+const addDivisionButton = document.getElementById("saveDivision");
+if (addDivisionButton && divisionSelect && divisionModal) addDivisionButton.addEventListener("click", () => {
+    const name = (divisionNameField.value || "").trim();
+    if (!name || name.length > 20) { divisionNameField.setCustomValidity("Enter a division name up to 20 characters."); divisionNameField.reportValidity(); return; }
+    divisionNameField.setCustomValidity("");
+    let option = Array.from(divisionSelect.options).find(item => item.value.toLowerCase() === name.toLowerCase());
+    if (!option) { option = new Option(name, name); divisionSelect.add(option); }
+    divisionSelect.value = option.value;
+    divisionNameField.value = "";
+    divisionModal.hide();
+});
+</script>
+{% endblock %}
+

@@ -1,0 +1,85 @@
+{% extends "webapp.html" %}
+
+{% block content %}
+<style>
+    body:has(.payment-history) { background:#faf9f5 !important; color:#1c2520; font-family:Inter, "Plus Jakarta Sans", sans-serif; }
+    .payment-history { width:min(100% - 40px, 1200px); margin:0 auto; padding:34px 0 54px; color:#1c2520; }
+    .payment-history * { box-sizing:border-box; }
+    .payment-header { position:relative; isolation:isolate; overflow:hidden; margin-bottom:22px; padding:25px 28px; border:1px solid #dfe9e1; border-radius:12px; background:linear-gradient(120deg,#fff 0%,#f4faf5 100%); box-shadow:0 5px 18px rgb(28 58 42 / 6%); }
+    .payment-header::after { position:absolute; z-index:-1; top:-100px; right:7%; width:250px; height:250px; border:30px solid rgb(23 99 72 / 6%); border-radius:50%; content:""; }
+    .payment-breadcrumb { margin:0 0 9px; color:#78877e; font-size:.78rem; }
+    .payment-breadcrumb strong { color:#176348; }
+    .payment-title { margin:0; color:#2a3b35; font-family:"Plus Jakarta Sans", Inter, sans-serif; font-size:clamp(1.65rem, 3vw, 2.1rem); font-weight:750; letter-spacing:-.04em; }
+    .payment-subtitle { margin:6px 0 0; color:#526056; font-size:.9rem; }
+    .payment-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:22px; }
+    .payment-summary-item { min-width:0; padding:17px; border:1px solid #e8e6df; border-top:3px solid #176348; border-radius:10px; background:#fff; box-shadow:0 3px 12px rgb(28 37 32 / 5%); }
+    .payment-summary-item:nth-child(4n+2) { border-top-color:#5e9278; }
+    .payment-summary-item:nth-child(4n+3) { border-top-color:#c8913c; }
+    .payment-summary-item:nth-child(4n) { border-top-color:#7a9a60; }
+    .payment-summary-item span { display:block; color:#748078; font-size:.7rem; font-weight:750; letter-spacing:.04em; text-transform:uppercase; }
+    .payment-summary-item strong { display:block; margin-top:8px; color:#2a493c; font-size:1rem; font-weight:700; overflow-wrap:anywhere; }
+    .payment-summary-item:nth-child(4n+2) strong { color:#426b55; }
+    .payment-summary-item:nth-child(4n+3) strong { color:#9a6a24; }
+    .payment-summary-item:nth-child(4n) strong { color:#557342; }
+    .payment-table-panel { overflow:hidden; border:1px solid #e8e6df; border-radius:12px; background:#fff; box-shadow:0 5px 18px rgb(28 58 42 / 5%); }
+    .payment-table-heading { padding:18px 20px; border-bottom:1px solid #e5ebe6; background:linear-gradient(90deg,#f2f8f3,#fbfaf6); }
+    .payment-table-heading h2 { margin:0; color:#34483d; font-size:1rem; font-weight:750; }
+    .payment-table-heading p { margin:4px 0 0; color:#68776e; font-size:.82rem; }
+    .payment-table-wrap { overflow-x:auto; }
+    .payment-table { width:100%; min-width:620px; margin:0; border-collapse:collapse; }
+    .payment-table thead { background:#f5f8f4; }
+    .payment-table th { padding:12px 16px; border-bottom:1px solid #dfe8e1; color:#718078; font-size:.72rem; font-weight:750; letter-spacing:.04em; text-align:left; text-transform:uppercase; white-space:nowrap; }
+    .payment-table td { padding:13px 16px; border-bottom:1px solid #edf0ea; color:#52645a; font-size:.84rem; vertical-align:middle; }
+    .payment-table tbody tr:last-child td { border-bottom:0; }
+    .payment-table tbody tr:hover td { background:#f8fbf8; }
+    .payment-table td:first-child { color:#34483d; font-weight:700; }
+    .payment-amount { color:#176348 !important; font-weight:750; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .payment-closed { display:inline-flex; padding:4px 9px; border:1px solid #b8e5d0; border-radius:999px; background:#e9f8ef; color:#176348; font-size:.74rem; font-weight:750; }
+    @media(max-width:760px) { .payment-summary { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media(max-width:520px) { .payment-history { width:calc(100% - 32px); padding-top:20px; } .payment-header { padding:21px 19px; border-radius:11px; } .payment-summary { gap:8px; } .payment-summary-item { padding:13px; } }
+</style>
+
+<main class="payment-history" id="main-content" tabindex="-1">
+    <header class="payment-header">
+        <p class="payment-breadcrumb">Accounts &amp; Operations <span aria-hidden="true"></span> <strong>Payment history</strong></p>
+        <h1 class="payment-title">{{ student.name|upper }}</h1>
+        <p class="payment-subtitle">Installment and payment history</p>
+    </header>
+
+    <section class="payment-summary" aria-label="Student and fee summary">
+        <div class="payment-summary-item"><span>Registration number</span><strong>{{ student.student_reg }}</strong></div>
+        <div class="payment-summary-item"><span>Phone</span><strong>{{ student.phone }}</strong></div>
+        <div class="payment-summary-item"><span>Course</span> <strong>{{ student.course_id.course_name }} <small>({{ student.course_id.c_reg }})</small></strong></div>
+        <div class="payment-summary-item"><span>Course fee</span><strong>{{ student.course_fee }}</strong></div>
+        <div class="payment-summary-item"><span>Down payment</span><strong>{{ student.down_payment }}</strong></div>
+        <div class="payment-summary-item"><span>Monthly installment</span><strong>{{ monthly_installment }}</strong></div>
+        <div class="payment-summary-item"><span>Installments paid</span><strong>{{ paid }}</strong></div>
+        <div class="payment-summary-item"><span>Balance</span><strong>{{ balance }}</strong></div>
+    </section>
+
+    <section class="payment-table-panel" aria-labelledby="payment-table-title">
+        <header class="payment-table-heading">
+            <h2 id="payment-table-title">Installment schedule</h2>
+            <p>Due dates and recorded payments for this student.</p>
+        </header>
+        <div class="payment-table-wrap">
+            <table class="payment-table">
+                <thead><tr><th scope="col">Installment</th><th scope="col">Due date</th><th scope="col">Payment date</th><th scope="col">Amount paid</th></tr></thead>
+                <tbody>
+                    {% for installment in installment_rows %}
+                    <tr>
+                        <td>{% if installment.is_down_payment %}Down Payment{% else %}{{ installment.number }}{% endif %}</td>
+                        <td>{% if installment.due_date %}{{ installment.due_date|date:"M. j, Y" }}{% else %}—{% endif %}</td>
+                        <td>{% if installment.payment_date %}{{ installment.payment_date|date:"M. j, Y" }}{% elif installment.is_closed %}<span class="payment-closed">Closed</span>{% else %}—{% endif %}</td>
+                        <td class="payment-amount">{% if installment.amount %}{{ installment.amount }}{% elif installment.is_closed %}<span class="payment-closed">Closed</span>{% else %}—{% endif %}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-center py-5 text-secondary">No installment records found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+{% endblock %}
+
